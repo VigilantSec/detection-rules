@@ -70,6 +70,7 @@ tags = [
     "Use Case: Identity and Access Audit",
     "Tactic: Privilege Escalation",
     "Resources: Investigation Guide",
+    "vigialnt.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "query"
