@@ -67,8 +67,7 @@ references = [
 risk_score = 47
 rule_id = "514121ce-c7b6-474a-8237-68ff71672379"
 severity = "medium"
-tags = ["Domain: Cloud", "Data Source: Microsoft 365", "Tactic: Persistence",
-    "vigilant.alerting.persistence", "Resources: Investigation Guide"]
+tags = ["Domain: Cloud", "Data Source: Microsoft 365", "Tactic: Persistence", "vigilant.alerting.persistence", "Resources: Investigation Guide"]
 timestamp_override = "event.ingested"
 type = "query"
 
