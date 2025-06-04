@@ -28,7 +28,6 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Tactic: Lateral Movement",
     "Resources: Investigation Guide",
 ]
