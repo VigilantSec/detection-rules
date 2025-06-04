@@ -69,7 +69,6 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Initial Access",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Data Source: Elastic Endgame",
     "Data Source: Elastic Defend",
     "Data Source: Sysmon",
