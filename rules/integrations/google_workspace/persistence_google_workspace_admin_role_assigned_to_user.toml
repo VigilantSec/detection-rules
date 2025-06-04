@@ -96,7 +96,7 @@ tags = [
     "Tactic: Persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.high_risk",
-    "vigilant.alerting.user_compromise"
+    "vigilant.alerting.persistence"
 ]
 timestamp_override = "event.ingested"
 type = "query"
