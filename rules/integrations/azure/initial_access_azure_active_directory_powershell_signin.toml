@@ -78,7 +78,7 @@ tags = [
     "Resources: Investigation Guide",
     "Tactic: Initial Access",
     "vigilant.alerting.high_risk",
-    "vigilant.alerting.authentication"
+    "vigilant.alerting.initial_access"
 ]
 timestamp_override = "event.ingested"
 type = "query"
