@@ -76,7 +76,7 @@ tags = [
     "Tactic: Exfiltration",
     "Resources: Investigation Guide",
     "vigilant.alerting.data_exfiltration",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "eql"
