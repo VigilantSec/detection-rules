@@ -60,6 +60,7 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Use Case: Active Directory Monitoring",
     "Data Source: Active Directory",
     "Data Source: Windows Security Event Logs",

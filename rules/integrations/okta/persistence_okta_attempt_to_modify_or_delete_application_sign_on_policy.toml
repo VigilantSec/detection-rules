@@ -72,7 +72,8 @@ references = [
 risk_score = 47
 rule_id = "cd16fb10-0261-46e8-9932-a0336278cdbe"
 severity = "medium"
-tags = ["Tactic: Persistence", "Use Case: Identity and Access Audit", "Data Source: Okta", "Resources: Investigation Guide"]
+tags = ["Tactic: Persistence",
+    "vigilant.alerting.persistence", "Use Case: Identity and Access Audit", "Data Source: Okta", "Resources: Investigation Guide"]
 timestamp_override = "event.ingested"
 type = "query"
 

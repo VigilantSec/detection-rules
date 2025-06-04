@@ -105,6 +105,7 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Privilege Escalation",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
     "Data Source: Elastic Defend",
 ]

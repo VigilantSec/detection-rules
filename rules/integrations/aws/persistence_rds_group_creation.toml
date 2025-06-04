@@ -68,6 +68,7 @@ tags = [
     "Data Source: Amazon Web Services",
     "Data Source: AWS RDS",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
 ]
 timestamp_override = "event.ingested"

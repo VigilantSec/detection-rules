@@ -84,6 +84,7 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Privilege Escalation",
     "Tactic: Execution",
     "Data Source: Elastic Endgame",

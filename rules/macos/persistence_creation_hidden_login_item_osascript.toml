@@ -48,6 +48,7 @@ tags = [
     "OS: macOS",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Execution",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",

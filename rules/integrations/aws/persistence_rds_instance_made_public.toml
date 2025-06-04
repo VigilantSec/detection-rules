@@ -70,6 +70,7 @@ tags = [
     "Resources: Investigation Guide",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Defense Evasion",
 ]
 timestamp_override = "event.ingested"

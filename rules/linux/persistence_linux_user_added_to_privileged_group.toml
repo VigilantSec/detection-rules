@@ -120,6 +120,7 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Data Source: Elastic Endgame",
     "Resources: Investigation Guide",
     "Data Source: Elastic Defend",

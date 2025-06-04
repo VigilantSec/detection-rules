@@ -172,6 +172,7 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Threat: Orbit",
     "Threat: Lightning Framework",
     "Data Source: Elastic Endgame",

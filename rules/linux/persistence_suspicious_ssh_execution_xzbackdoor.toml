@@ -29,6 +29,7 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Credential Access",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Lateral Movement",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",

@@ -141,6 +141,7 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Data Source: Elastic Defend",
     "Data Source: Elastic Endgame",
     "Data Source: Crowdstrike",

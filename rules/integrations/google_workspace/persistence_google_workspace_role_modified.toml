@@ -95,6 +95,7 @@ tags = [
     "Use Case: Identity and Access Audit",
     "Resources: Investigation Guide",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "vigilant.alerting.high_risk",
     "vigilant.alerting.persistence"
 ]

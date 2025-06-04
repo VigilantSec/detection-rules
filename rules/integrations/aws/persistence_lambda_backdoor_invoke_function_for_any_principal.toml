@@ -71,6 +71,7 @@ tags = [
     "Data Source: AWS Lambda",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
 ]
 timestamp_override = "event.ingested"

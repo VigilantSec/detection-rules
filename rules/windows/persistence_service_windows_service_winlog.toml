@@ -102,6 +102,7 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
     "Data Source: Windows Security Event Logs",
     "Data Source: Windows System Event Logs",

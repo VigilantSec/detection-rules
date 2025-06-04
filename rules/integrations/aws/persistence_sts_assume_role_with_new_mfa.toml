@@ -72,6 +72,7 @@ tags = [
     "Use Case: Identity and Access Audit",
     "Tactic: Privilege Escalation",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Lateral Movement",
     "Resources: Investigation Guide",
     "vigilant.alerting.high_risk",

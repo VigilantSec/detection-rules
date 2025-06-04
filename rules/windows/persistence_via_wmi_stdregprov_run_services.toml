@@ -105,6 +105,7 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Data Source: Elastic Endgame",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",

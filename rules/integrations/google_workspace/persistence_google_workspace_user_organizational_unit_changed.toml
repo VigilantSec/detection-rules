@@ -93,6 +93,7 @@ tags = [
     "Data Source: Google Workspace",
     "Use Case: Configuration Audit",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.high_risk",
     "vigilant.alerting.persistence"

@@ -68,6 +68,7 @@ tags = [
     "Data Source: Microsoft 365",
     "Use Case: Identity and Access Audit",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.passthrough",
     "vigilant.alerting.persistence",

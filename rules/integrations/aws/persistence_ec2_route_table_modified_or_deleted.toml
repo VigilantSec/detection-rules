@@ -102,6 +102,7 @@ tags = [
     "Use Case: Network Security Monitoring",
     "Resources: Investigation Guide",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

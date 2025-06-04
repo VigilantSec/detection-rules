@@ -92,6 +92,7 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Discovery",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Credential Access",
     "Data Source: Elastic Defend",
     "Data Source: Elastic Endgame",

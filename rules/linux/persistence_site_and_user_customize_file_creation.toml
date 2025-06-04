@@ -85,6 +85,7 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Execution",
     "Tactic: Defense Evasion",
     "Data Source: Elastic Defend",

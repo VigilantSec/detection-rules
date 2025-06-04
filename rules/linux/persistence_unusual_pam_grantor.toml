@@ -37,6 +37,7 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Credential Access",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Data Source: Auditd Manager",
     "Resources: Investigation Guide",
 ]

@@ -70,6 +70,7 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
+    "vigilant.alerting.persistence",
     "Tactic: Defense Evasion",
     "Tactic: Execution",
     "Data Source: Elastic Endgame",
