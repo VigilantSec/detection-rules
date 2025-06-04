@@ -59,7 +59,6 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Lateral Movement",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Data Source: Windows Security Event Logs",
     "Resources: Investigation Guide",
 ]

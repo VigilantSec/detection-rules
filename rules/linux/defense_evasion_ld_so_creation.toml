@@ -87,7 +87,6 @@ tags = [
     "Tactic: Defense Evasion",
     "Tactic: Execution",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Data Source: Elastic Defend",
     "Data Source: SentinelOne",
     "Data Source: Elastic Endgame",

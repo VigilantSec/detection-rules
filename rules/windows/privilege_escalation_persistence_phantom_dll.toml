@@ -80,7 +80,6 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Tactic: Privilege Escalation",
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",

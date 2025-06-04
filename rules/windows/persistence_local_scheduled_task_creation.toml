@@ -65,7 +65,6 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Data Source: Elastic Defend",
     "Data Source: Sysmon",
     "Resources: Investigation Guide",

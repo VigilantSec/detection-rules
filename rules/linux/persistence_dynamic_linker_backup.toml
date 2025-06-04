@@ -159,7 +159,6 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Threat: Orbit",
     "Data Source: Elastic Defend",
     "Data Source: SentinelOne",

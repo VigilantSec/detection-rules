@@ -170,7 +170,6 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Tactic: Privilege Escalation",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",

@@ -72,7 +72,6 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Defense Evasion",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Tactic: Privilege Escalation",
     "Data Source: Elastic Endgame",
     "Data Source: Elastic Defend",

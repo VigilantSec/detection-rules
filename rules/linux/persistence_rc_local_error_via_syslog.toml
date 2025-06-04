@@ -48,8 +48,7 @@ Filebeat is a lightweight shipper for forwarding and centralizing log data. Inst
 - To run the system module of Filebeat on Linux follow the setup instructions in the [helper guide](https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-system.html).
 """
 severity = "low"
-tags = ["Domain: Endpoint", "OS: Linux", "Use Case: Threat Detection", "Tactic: Persistence",
-    "vigilant.alerting.persistence", "Resources: Investigation Guide"]
+tags = ["Domain: Endpoint", "OS: Linux", "Use Case: Threat Detection", "Tactic: Persistence", "Resources: Investigation Guide"]
 timestamp_override = "event.ingested"
 type = "query"
 

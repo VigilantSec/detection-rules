@@ -48,7 +48,6 @@ tags = [
     "OS: Linux",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Tactic: Credential Access",
     "Tactic: Privilege Escalation",
     "Tactic: Defense Evasion",

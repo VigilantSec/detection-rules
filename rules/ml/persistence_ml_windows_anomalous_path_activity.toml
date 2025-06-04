@@ -115,7 +115,6 @@ tags = [
     "Rule Type: ML",
     "Rule Type: Machine Learning",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Tactic: Execution",
     "Resources: Investigation Guide",
 ]

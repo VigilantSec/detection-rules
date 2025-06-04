@@ -56,7 +56,6 @@ tags = [
     "OS: Windows",
     "Use Case: Threat Detection",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
     "Use Case: Active Directory Monitoring",
     "Data Source: Active Directory",

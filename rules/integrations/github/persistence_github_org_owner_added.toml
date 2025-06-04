@@ -59,7 +59,6 @@ tags = [
     "Use Case: Threat Detection",
     "Use Case: UEBA",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Data Source: Github",
     "Resources: Investigation Guide",
 ]
