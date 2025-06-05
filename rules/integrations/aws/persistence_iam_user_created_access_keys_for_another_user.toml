@@ -2,7 +2,7 @@
 creation_date = "2024/06/13"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2025/03/20"
+updated_date = "2025/06/05"
 
 [rule]
 author = ["Elastic"]
@@ -91,9 +91,8 @@ tags = [
     "Use Case: Identity and Access Audit",
     "Tactic: Privilege Escalation",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.user_compromise",
+    "vigilant.alerting.persistence",
     "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"

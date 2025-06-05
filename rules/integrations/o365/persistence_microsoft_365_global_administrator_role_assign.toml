@@ -2,7 +2,7 @@
 creation_date = "2022/01/06"
 integration = ["o365"]
 maturity = "production"
-updated_date = "2025/01/15"
+updated_date = "2025/06/05"
 
 [rule]
 author = ["Elastic"]
@@ -68,7 +68,6 @@ tags = [
     "Data Source: Microsoft 365",
     "Use Case: Identity and Access Audit",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.passthrough",
     "vigilant.alerting.persistence",

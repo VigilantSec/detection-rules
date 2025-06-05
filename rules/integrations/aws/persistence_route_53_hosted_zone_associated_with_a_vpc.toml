@@ -2,7 +2,7 @@
 creation_date = "2021/07/19"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2025/01/15"
+updated_date = "2025/06/05"
 
 [rule]
 author = ["Austin Songer"]
@@ -68,8 +68,9 @@ tags = [
     "Data Source: AWS Route53",
     "Use Case: Asset Visibility",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
     "Resources: Investigation Guide",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
