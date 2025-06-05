@@ -82,7 +82,6 @@ tags = [
     "Tactic: Impact",
     "Tactic: Persistence",
     "vigilant.alerting.persistence",
-    "vigilant.alerting.user_compromise",
     "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
