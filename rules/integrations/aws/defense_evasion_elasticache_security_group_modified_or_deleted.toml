@@ -71,7 +71,7 @@ tags = [
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",
     "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.passthrough"
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
