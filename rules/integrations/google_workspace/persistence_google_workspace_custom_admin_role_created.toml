@@ -94,7 +94,7 @@ tags = [
     "Resources: Investigation Guide",
     "Tactic: Persistence",
     "vigilant.alerting.high_risk",
-    "vigilant.alerting.persistence"
+    "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -116,4 +116,3 @@ reference = "https://attack.mitre.org/techniques/T1098/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

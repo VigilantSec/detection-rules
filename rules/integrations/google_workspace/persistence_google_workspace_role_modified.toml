@@ -11,7 +11,7 @@ Detects when a custom admin role or its permissions are modified. An adversary m
 to elevate the permissions of other user accounts and persist in their target’s environment.
 """
 false_positives = [
-    """
+  """
     Google Workspace admin roles may be modified by system administrators. Verify that the configuration change was
     expected. Exceptions can be added to this rule to filter expected behavior.
     """,
@@ -82,21 +82,21 @@ The Google Workspace Fleet integration, Filebeat module, or similarly structured
   - https://support.google.com/a/answer/7061566
   - https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-google_workspace.html"""
 references = [
-    "https://support.google.com/a/answer/2406043?hl=en",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two"
+  "https://support.google.com/a/answer/2406043?hl=en",
+  "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
+  "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two",
 ]
 risk_score = 47
 rule_id = "6f435062-b7fc-4af9-acea-5b1ead65c5a5"
 severity = "medium"
 tags = [
-    "Domain: Cloud",
-    "Data Source: Google Workspace",
-    "Use Case: Identity and Access Audit",
-    "Resources: Investigation Guide",
-    "Tactic: Persistence",
-    "vigilant.alerting.high_risk",
-    "vigilant.alerting.persistence"
+  "Domain: Cloud",
+  "Data Source: Google Workspace",
+  "Use Case: Identity and Access Audit",
+  "Resources: Investigation Guide",
+  "Tactic: Persistence",
+  "vigilant.alerting.high_risk",
+  "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -118,4 +118,3 @@ reference = "https://attack.mitre.org/techniques/T1098/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

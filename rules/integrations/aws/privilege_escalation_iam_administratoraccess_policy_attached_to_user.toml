@@ -92,8 +92,8 @@ tags = [
     "Tactic: Privilege Escalation",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.passthrough"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
@@ -119,7 +119,6 @@ name = "Additional Cloud Roles"
 reference = "https://attack.mitre.org/techniques/T1098/003/"
 
 
-
 [rule.threat.tactic]
 id = "TA0004"
 name = "Privilege Escalation"
@@ -134,7 +133,6 @@ reference = "https://attack.mitre.org/techniques/T1098/"
 id = "T1098.003"
 name = "Additional Cloud Roles"
 reference = "https://attack.mitre.org/techniques/T1098/003/"
-
 
 
 [rule.threat.tactic]
@@ -157,4 +155,3 @@ field_names = [
     "event.provider",
     "aws.cloudtrail.request_parameters",
 ]
-

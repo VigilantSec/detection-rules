@@ -14,7 +14,7 @@ accounts prior to it being enabled for users within organization units. Adversar
 security requirements to access a valid account.
 """
 false_positives = [
-    """
+  """
     Administrators may remove 2-step verification (2SV) temporarily for testing or during maintenance. If 2SV was
     previously enabled, it is not common to disable this policy for extended periods of time.
     """,
@@ -79,21 +79,21 @@ The Google Workspace Fleet integration, Filebeat module, or similarly structured
   - https://support.google.com/a/answer/7061566
   - https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-google_workspace.html"""
 references = [
-    "https://support.google.com/a/answer/9176657?hl=en",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two"
+  "https://support.google.com/a/answer/9176657?hl=en",
+  "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
+  "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two",
 ]
 risk_score = 47
 rule_id = "5e161522-2545-11ed-ac47-f661ea17fbce"
 severity = "medium"
 tags = [
-    "Domain: Cloud",
-    "Data Source: Google Workspace",
-    "Use Case: Configuration Audit",
-    "Tactic: Persistence",
-    "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+  "Domain: Cloud",
+  "Data Source: Google Workspace",
+  "Use Case: Configuration Audit",
+  "Tactic: Persistence",
+  "Resources: Investigation Guide",
+  "vigilant.alerting.sensitive_environment_changes",
+  "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -115,4 +115,3 @@ reference = "https://attack.mitre.org/techniques/T1556/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

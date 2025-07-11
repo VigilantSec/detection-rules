@@ -59,7 +59,9 @@ Amazon RDS simplifies database management by automating tasks like provisioning 
 ## Setup
 
 The AWS Fleet integration, Filebeat module, or similarly structured data is required to be compatible with this rule."""
-references = ["https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html"]
+references = [
+    "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html",
+]
 risk_score = 21
 rule_id = "f30f3443-4fbb-4c27-ab89-c3ad49d62315"
 severity = "low"
@@ -71,8 +73,8 @@ tags = [
     "Use Case: Asset Visibility",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -89,4 +91,3 @@ framework = "MITRE ATT&CK"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

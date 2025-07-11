@@ -62,7 +62,9 @@ Microsoft Teams allows organizations to enhance functionality by integrating cus
 ## Setup
 
 The Office 365 Logs Fleet integration, Filebeat module, or similarly structured data is required to be compatible with this rule."""
-references = ["https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/deploy-and-publish/apps-upload"]
+references = [
+    "https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/deploy-and-publish/apps-upload",
+]
 risk_score = 47
 rule_id = "bbd1a775-8267-41fa-9232-20e5582596ac"
 severity = "medium"
@@ -72,8 +74,8 @@ tags = [
     "Use Case: Configuration Audit",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -93,4 +95,3 @@ framework = "MITRE ATT&CK"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

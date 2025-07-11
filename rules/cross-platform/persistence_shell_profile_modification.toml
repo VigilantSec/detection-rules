@@ -12,26 +12,30 @@ are executed in a user's context, either interactively or non-interactively, whe
 environment is set correctly. Adversaries may abuse this to establish persistence by executing malicious content
 triggered by a user’s shell.
 """
-false_positives = ["Changes to the Shell Profile tend to be noisy, a tuning per your environment will be required."]
+false_positives = [
+  "Changes to the Shell Profile tend to be noisy, a tuning per your environment will be required.",
+]
 from = "now-9m"
 index = ["logs-endpoint.events.*", "auditbeat-*"]
 language = "kuery"
 license = "Elastic License v2"
 name = "Bash Shell Profile Modification"
-references = ["https://www.anomali.com/blog/pulling-linux-rabbit-rabbot-malware-out-of-a-hat"]
+references = [
+  "https://www.anomali.com/blog/pulling-linux-rabbit-rabbot-malware-out-of-a-hat",
+]
 risk_score = 47
 rule_id = "e6c1a552-7776-44ad-ae0f-8746cc07773c"
 severity = "medium"
 tags = [
-    "Domain: Endpoint",
-    "OS: macOS",
-    "OS: Linux",
-    "Use Case: Threat Detection",
-    "Tactic: Persistence",
-    "Data Source: Elastic Defend",
-    "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+  "Domain: Endpoint",
+  "OS: macOS",
+  "OS: Linux",
+  "Use Case: Threat Detection",
+  "Tactic: Persistence",
+  "Data Source: Elastic Defend",
+  "Resources: Investigation Guide",
+  "vigilant.alerting.sensitive_environment_changes",
+  "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -101,9 +105,7 @@ name = "Unix Shell Configuration Modification"
 reference = "https://attack.mitre.org/techniques/T1546/004/"
 
 
-
 [rule.threat.tactic]
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

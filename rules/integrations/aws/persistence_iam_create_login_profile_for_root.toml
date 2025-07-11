@@ -121,9 +121,9 @@ tags = [
     "Data Source: AWS IAM",
     "Use Case: Identity and Access Audit",
     "Tactic: Persistence",
-    "vigilant.alerting.persistence",
+    "vigilant.alerting.sensitive_environment_changes",
     "Resources: Investigation Guide",
-    "vigilant.alerting.passthrough"
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
@@ -182,4 +182,3 @@ reference = "https://attack.mitre.org/techniques/T1098/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

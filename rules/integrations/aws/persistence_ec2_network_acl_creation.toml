@@ -77,8 +77,8 @@ tags = [
     "Tactic: Persistence",
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -101,7 +101,7 @@ field_names = [
     "cloud.account.id",
     "cloud.region",
     "aws.cloudtrail.request_parameters",
-    "aws.cloudtrail.response_elements"
+    "aws.cloudtrail.response_elements",
 ]
 
 [[rule.threat]]
@@ -132,4 +132,3 @@ reference = "https://attack.mitre.org/techniques/T1562/007/"
 id = "TA0005"
 name = "Defense Evasion"
 reference = "https://attack.mitre.org/tactics/TA0005/"
-

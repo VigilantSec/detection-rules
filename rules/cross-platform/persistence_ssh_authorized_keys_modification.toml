@@ -27,8 +27,8 @@ tags = [
     "Tactic: Persistence",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
@@ -103,7 +103,6 @@ name = "SSH Authorized Keys"
 reference = "https://attack.mitre.org/techniques/T1098/004/"
 
 
-
 [rule.threat.tactic]
 id = "TA0003"
 name = "Persistence"
@@ -130,7 +129,6 @@ name = "SSH Hijacking"
 reference = "https://attack.mitre.org/techniques/T1563/001/"
 
 
-
 [rule.threat.tactic]
 id = "TA0008"
 name = "Lateral Movement"
@@ -142,5 +140,3 @@ value = ["host.id", "process.executable"]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
 value = "now-10d"
-
-

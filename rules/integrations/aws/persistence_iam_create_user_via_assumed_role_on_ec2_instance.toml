@@ -13,7 +13,7 @@ users through these roles—particularly from within EC2 instances—may indicat
 exploit such permissions to establish persistence by creating new IAM users under unauthorized conditions.
 """
 false_positives = [
-    """
+  """
     Assumed roles may be used by legitimate automated systems to create IAM users for specific workflows. Verify if this
     event aligns with known automation activities. If the action is routine for specific roles or user agents (e.g.,
     `aws-cli`, `boto3`), consider adding those roles or user agents to a monitored exception list for streamlined
@@ -70,22 +70,22 @@ This rule detects when an AWS Identity and Access Management (IAM) user is creat
 For further guidance on managing IAM roles and permissions within AWS environments, refer to the [AWS IAM documentation](https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateUser.html) and AWS best practices for security.
 """
 references = [
-    "https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateUser.html",
-    "https://www.dionach.com/en-us/breaking-into-the-cloud-red-team-tactics-for-aws-compromise/",
+  "https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateUser.html",
+  "https://www.dionach.com/en-us/breaking-into-the-cloud-red-team-tactics-for-aws-compromise/",
 ]
 risk_score = 47
 rule_id = "f7a1c536-9ac0-11ef-9911-f661ea17fbcd"
 severity = "medium"
 tags = [
-    "Domain: Cloud",
-    "Data Source: AWS",
-    "Data Source: Amazon Web Services",
-    "Data Source: AWS IAM",
-    "Use Case: Identity and Access Audit",
-    "Tactic: Persistence",
-    "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+  "Domain: Cloud",
+  "Data Source: AWS",
+  "Data Source: Amazon Web Services",
+  "Data Source: AWS IAM",
+  "Use Case: Identity and Access Audit",
+  "Tactic: Persistence",
+  "Resources: Investigation Guide",
+  "vigilant.alerting.sensitive_environment_changes",
+  "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
@@ -101,17 +101,17 @@ event.dataset: "aws.cloudtrail"
 
 [rule.investigation_fields]
 field_names = [
-    "@timestamp",
-    "user.name",
-    "source.address",
-    "aws.cloudtrail.user_identity.arn",
-    "aws.cloudtrail.user_identity.type",
-    "user_agent.original",
-    "event.action",
-    "event.outcome",
-    "cloud.region",
-    "aws.cloudtrail.request_parameters",
-    "aws.cloudtrail.response_elements"
+  "@timestamp",
+  "user.name",
+  "source.address",
+  "aws.cloudtrail.user_identity.arn",
+  "aws.cloudtrail.user_identity.type",
+  "user_agent.original",
+  "event.action",
+  "event.outcome",
+  "cloud.region",
+  "aws.cloudtrail.request_parameters",
+  "aws.cloudtrail.response_elements",
 ]
 
 [[rule.threat]]
@@ -126,7 +126,6 @@ name = "Cloud Account"
 reference = "https://attack.mitre.org/techniques/T1136/003/"
 
 
-
 [rule.threat.tactic]
 id = "TA0003"
 name = "Persistence"
@@ -138,5 +137,3 @@ value = ["aws.cloudtrail.user_identity.arn"]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
 value = "now-14d"
-
-

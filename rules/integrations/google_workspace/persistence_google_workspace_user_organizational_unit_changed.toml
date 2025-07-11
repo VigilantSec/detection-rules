@@ -13,7 +13,7 @@ change which organizational account the user belongs to which then could allow t
 applications and resources inaccessible prior to.
 """
 false_positives = [
-    """
+  """
     Google Workspace administrators may adjust change which organizational unit a user belongs to as a result of
     internal role adjustments.
     """,
@@ -81,21 +81,21 @@ The Google Workspace Fleet integration, Filebeat module, or similarly structured
   - https://support.google.com/a/answer/7061566
   - https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-google_workspace.html"""
 references = [
-    "https://support.google.com/a/answer/6328701?hl=en#",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two"
+  "https://support.google.com/a/answer/6328701?hl=en#",
+  "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
+  "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two",
 ]
 risk_score = 21
 rule_id = "cc6a8a20-2df2-11ed-8378-f661ea17fbce"
 severity = "low"
 tags = [
-    "Domain: Cloud",
-    "Data Source: Google Workspace",
-    "Use Case: Configuration Audit",
-    "Tactic: Persistence",
-    "Resources: Investigation Guide",
-    "vigilant.alerting.high_risk",
-    "vigilant.alerting.persistence"
+  "Domain: Cloud",
+  "Data Source: Google Workspace",
+  "Use Case: Configuration Audit",
+  "Tactic: Persistence",
+  "Resources: Investigation Guide",
+  "vigilant.alerting.high_risk",
+  "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -118,9 +118,7 @@ name = "Additional Cloud Roles"
 reference = "https://attack.mitre.org/techniques/T1098/003/"
 
 
-
 [rule.threat.tactic]
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

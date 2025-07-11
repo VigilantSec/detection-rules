@@ -78,7 +78,7 @@ The Google Workspace Fleet integration, Filebeat module, or similarly structured
 references = [
     "https://support.google.com/a/answer/7061566",
     "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two"
+    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two",
 ]
 risk_score = 47
 rule_id = "e555105c-ba6d-481f-82bb-9b633e7b4827"
@@ -90,7 +90,7 @@ tags = [
     "Tactic: Persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.high_risk",
-    "vigilant.alerting.persistence"
+    "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -112,4 +112,3 @@ reference = "https://attack.mitre.org/techniques/T1556/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

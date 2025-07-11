@@ -14,7 +14,7 @@ Terms](https://www.elastic.co/guide/en/security/current/rules-ui-create.html#cre
 first instance of this behavior by the `aws.cloudtrail.user_identity.arn` field in the last 10 days.
 """
 false_positives = [
-    """
+  """
     Route Table could be modified or deleted by a system administrator. Verify whether the user identity, user agent,
     and/or hostname should be making changes in your environment. Route Table being modified from unfamiliar users
     should be investigated. If known behavior is causing false positives, it can be exempted from the rule. Also
@@ -83,27 +83,27 @@ This rule detects modifications or deletions of AWS route tables using actions s
 - **Secure Automation**: Ensure automation tools, such as Terraform or CloudFormation, are configured securely and that their credentials are stored in secure locations like AWS Secrets Manager.
 """
 references = [
-    "https://github.com/easttimor/aws-incident-response#network-routing",
-    "https://docs.datadoghq.com/security_platform/default_rules/aws-ec2-route-table-modified/",
-    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ReplaceRoute.html",
-    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ReplaceRouteTableAssociation",
-    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteRouteTable.html",
-    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteRoute.html",
-    "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DisassociateRouteTable.html",
+  "https://github.com/easttimor/aws-incident-response#network-routing",
+  "https://docs.datadoghq.com/security_platform/default_rules/aws-ec2-route-table-modified/",
+  "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ReplaceRoute.html",
+  "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ReplaceRouteTableAssociation",
+  "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteRouteTable.html",
+  "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DeleteRoute.html",
+  "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DisassociateRouteTable.html",
 ]
 risk_score = 21
 rule_id = "e7cd5982-17c8-4959-874c-633acde7d426"
 severity = "low"
 tags = [
-    "Domain: Cloud",
-    "Data Source: AWS",
-    "Data Source: Amazon Web Services",
-    "Data Source: AWS EC2",
-    "Use Case: Network Security Monitoring",
-    "Resources: Investigation Guide",
-    "Tactic: Persistence",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+  "Domain: Cloud",
+  "Data Source: AWS",
+  "Data Source: Amazon Web Services",
+  "Data Source: AWS EC2",
+  "Use Case: Network Security Monitoring",
+  "Resources: Investigation Guide",
+  "Tactic: Persistence",
+  "vigilant.alerting.sensitive_environment_changes",
+  "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
@@ -141,5 +141,3 @@ value = ["aws.cloudtrail.user_identity.arn"]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
 value = "now-10d"
-
-

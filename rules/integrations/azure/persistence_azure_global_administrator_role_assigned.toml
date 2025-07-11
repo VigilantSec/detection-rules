@@ -68,8 +68,8 @@ tags = [
     "Use Case: Identity and Access Audit",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -93,9 +93,7 @@ name = "Additional Cloud Roles"
 reference = "https://attack.mitre.org/techniques/T1098/003/"
 
 
-
 [rule.threat.tactic]
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

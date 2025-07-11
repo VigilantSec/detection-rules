@@ -81,7 +81,7 @@ The Google Workspace Fleet integration, Filebeat module, or similarly structured
 references = [
     "https://support.google.com/a/answer/6328701?hl=en#",
     "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
-    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two"
+    "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two",
 ]
 risk_score = 47
 rule_id = "785a404b-75aa-4ffd-8be5-3334a5a544dd"
@@ -92,8 +92,8 @@ tags = [
     "Use Case: Configuration Audit",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -110,4 +110,3 @@ framework = "MITRE ATT&CK"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
-

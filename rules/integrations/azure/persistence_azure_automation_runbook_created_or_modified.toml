@@ -55,22 +55,22 @@ Azure Automation Runbooks are scripts that automate tasks in cloud environments,
 
 The Azure Fleet integration, Filebeat module, or similarly structured data is required to be compatible with this rule."""
 references = [
-    "https://powerzure.readthedocs.io/en/latest/Functions/operational.html#create-backdoor",
-    "https://github.com/hausec/PowerZure",
-    "https://posts.specterops.io/attacking-azure-azure-ad-and-introducing-powerzure-ca70b330511a",
-    "https://azure.microsoft.com/en-in/blog/azure-automation-runbook-management/",
+  "https://powerzure.readthedocs.io/en/latest/Functions/operational.html#create-backdoor",
+  "https://github.com/hausec/PowerZure",
+  "https://posts.specterops.io/attacking-azure-azure-ad-and-introducing-powerzure-ca70b330511a",
+  "https://azure.microsoft.com/en-in/blog/azure-automation-runbook-management/",
 ]
 risk_score = 21
 rule_id = "16280f1e-57e6-4242-aa21-bb4d16f13b2f"
 severity = "low"
 tags = [
-    "Domain: Cloud",
-    "Data Source: Azure",
-    "Use Case: Configuration Audit",
-    "Tactic: Persistence",
-    "Resources: Investigation Guide",
-    "vigilant.alerting.persistence",
-    "vigilant.alerting.high_risk"
+  "Domain: Cloud",
+  "Data Source: Azure",
+  "Use Case: Configuration Audit",
+  "Tactic: Persistence",
+  "Resources: Investigation Guide",
+  "vigilant.alerting.sensitive_environment_changes",
+  "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -85,4 +85,3 @@ event.dataset:azure.activitylogs and
   ) and
   event.outcome:(Success or success)
 '''
-
