@@ -55,7 +55,7 @@ The Microsoft 365 Global Administrator role grants comprehensive administrative 
 references = [
     "https://docs.microsoft.com/en-us/azure/active-directory/roles/permissions-reference#global-administrator",
     "https://learn.microsoft.com/en-us/purview/audit-log-activities",
-    "https://www.blackhat.com/us-24/briefings/schedule/#unoauthorized-a-technique-to-privilege-escalation-to-global-administrator-39231",
+    "https://www.blackhat.com/us-24/briefings/schedule/#unoauthorized-a-technique-to-privilege-escalation-to-global-administrator-39231"
 ]
 risk_score = 47
 rule_id = "88671231-6626-4e1b-abb7-6e361a171fbb"
@@ -69,7 +69,7 @@ tags = [
     "Tactic: Persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.passthrough",
-    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.persistence",
     "vigilant.tuned",
     "vigilant.tuned_date.02-19-25",
     "vigilant.disabled",
@@ -104,7 +104,9 @@ name = "Additional Cloud Roles"
 reference = "https://attack.mitre.org/techniques/T1098/003/"
 
 
+
 [rule.threat.tactic]
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
+

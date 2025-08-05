@@ -59,9 +59,7 @@ AWS Route 53 is a scalable domain name system (DNS) web service designed to rout
 ## Setup
 
 The AWS Fleet integration, Filebeat module, or similarly structured data is required to be compatible with this rule."""
-references = [
-    "https://docs.aws.amazon.com/Route53/latest/APIReference/API_Operations_Amazon_Route_53.html",
-]
+references = ["https://docs.aws.amazon.com/Route53/latest/APIReference/API_Operations_Amazon_Route_53.html"]
 risk_score = 21
 rule_id = "2045567e-b0af-444a-8c0b-0b6e2dae9e13"
 severity = "low"
@@ -73,8 +71,8 @@ tags = [
     "Use Case: Asset Visibility",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -103,3 +101,4 @@ framework = "MITRE ATT&CK"
 id = "TA0006"
 name = "Credential Access"
 reference = "https://attack.mitre.org/tactics/TA0006/"
+

@@ -57,9 +57,7 @@ AWS Route53 private hosted zones allow for DNS management within a Virtual Priva
 ## Setup
 
 The AWS Fleet integration, Filebeat module, or similarly structured data is required to be compatible with this rule."""
-references = [
-    "https://docs.aws.amazon.com/Route53/latest/APIReference/API_AssociateVPCWithHostedZone.html",
-]
+references = ["https://docs.aws.amazon.com/Route53/latest/APIReference/API_AssociateVPCWithHostedZone.html"]
 risk_score = 21
 rule_id = "e3c27562-709a-42bd-82f2-3ed926cced19"
 severity = "low"
@@ -71,8 +69,8 @@ tags = [
     "Use Case: Asset Visibility",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -95,3 +93,4 @@ reference = "https://attack.mitre.org/techniques/T1098/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
+

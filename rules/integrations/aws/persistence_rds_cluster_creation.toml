@@ -79,8 +79,8 @@ tags = [
     "Use Case: Asset Visibility",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -109,3 +109,4 @@ framework = "MITRE ATT&CK"
 id = "TA0005"
 name = "Defense Evasion"
 reference = "https://attack.mitre.org/tactics/TA0005/"
+

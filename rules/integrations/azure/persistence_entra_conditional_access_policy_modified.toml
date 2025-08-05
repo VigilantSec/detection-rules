@@ -64,23 +64,23 @@ If any of these cases apply and align with the activity's context, consider tuni
 - Implement stricter change management and alerting around CAP changes.
 """
 references = [
-  "https://docs.microsoft.com/en-us/azure/active-directory/conditional-access/overview",
-  "https://www.rezonate.io/blog/microsoft-entra-id-the-complete-guide-to-conditional-access-policies/",
+    "https://docs.microsoft.com/en-us/azure/active-directory/conditional-access/overview",
+    "https://www.rezonate.io/blog/microsoft-entra-id-the-complete-guide-to-conditional-access-policies/"
 ]
 risk_score = 47
 rule_id = "bc48bba7-4a23-4232-b551-eca3ca1e3f20"
 severity = "medium"
 tags = [
-  "Domain: Cloud",
-  "Data Source: Azure",
-  "Data Source: Microsoft Entra ID",
-  "Data Source: Microsoft Entra ID Audit Logs",
-  "Use Case: Identity and Access Audit",
-  "Use Case: Configuration Audit",
-  "Tactic: Persistence",
-  "Resources: Investigation Guide",
-  "vigilant.alerting.sensitive_environment_changes",
-  "vigilant.alerting.high_risk",
+    "Domain: Cloud",
+    "Data Source: Azure",
+    "Data Source: Microsoft Entra ID",
+    "Data Source: Microsoft Entra ID Audit Logs",
+    "Use Case: Identity and Access Audit",
+    "Use Case: Configuration Audit",
+    "Tactic: Persistence",
+    "Resources: Investigation Guide",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

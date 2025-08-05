@@ -12,9 +12,7 @@ the `AddPermission` API call with the `Principal` set to `*` which allows any AW
 Adversaries may abuse this permission to create a backdoor in the Lambda function that allows them to execute arbitrary
 code.
 """
-false_positives = [
-    "Lambda function owners may legitimately update the function policy to allow public invocation.",
-]
+false_positives = ["Lambda function owners may legitimately update the function policy to allow public invocation."]
 from = "now-60m"
 index = ["filebeat-*", "logs-aws.cloudtrail-*"]
 interval = "10m"
@@ -74,8 +72,8 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -101,3 +99,4 @@ reference = "https://attack.mitre.org/techniques/T1546/"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
+

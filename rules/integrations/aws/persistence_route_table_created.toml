@@ -76,8 +76,8 @@ tags = [
     "Use Case: Network Security Monitoring",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
-    "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -95,3 +95,4 @@ framework = "MITRE ATT&CK"
 id = "TA0003"
 name = "Persistence"
 reference = "https://attack.mitre.org/tactics/TA0003/"
+
