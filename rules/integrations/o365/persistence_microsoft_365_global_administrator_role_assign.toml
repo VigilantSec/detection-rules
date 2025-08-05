@@ -69,7 +69,7 @@ tags = [
     "Tactic: Persistence",
     "Resources: Investigation Guide",
     "vigilant.alerting.passthrough",
-    "vigilant.alerting.persistence",
+    "vigilant.alerting.sensitive_environment_changes",
     "vigilant.tuned",
     "vigilant.tuned_date.02-19-25",
     "vigilant.disabled",
