@@ -114,6 +114,6 @@ field = "new_terms_fields"
 value = ["azure.signinlogs.properties.user_principal_name", "azure.signinlogs.properties.app_id"]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
-value = "now-14d"
+value = "now-30d"
 
 
