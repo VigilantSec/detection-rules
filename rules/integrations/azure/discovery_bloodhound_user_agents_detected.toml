@@ -101,6 +101,9 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Discovery",
     "Resources: Investigation Guide",
+    "vigilant.alerting.initial_access",
+    "vigilant.alerting.passthrough",
+    "azurehound",
 ]
 timestamp_override = "event.ingested"
 type = "eql"
