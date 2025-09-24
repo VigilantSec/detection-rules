@@ -7,6 +7,9 @@ updated_date = "2025/05/19"
 [rule]
 author = ["Elastic"]
 description = """
+VSec note: A custom change has been made to the new terms configuration such that it only considers tenant.slug not the
+user. PR: https://github.com/VigilantSec/detection-rules/pull/59
+
 This New Terms rule focuses on the first occurrence of a client application ID
 (azure.graphactivitylogs.properties.app_id) making a request to Microsoft Graph API for a specific tenant ID
 (azure.tenant_id) and user principal object ID (azure.graphactivitylogs.properties.user_principal_object_id). This rule
