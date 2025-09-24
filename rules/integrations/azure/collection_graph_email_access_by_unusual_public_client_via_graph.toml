@@ -7,6 +7,9 @@ updated_date = "2025/05/06"
 [rule]
 author = ["Elastic"]
 description = """
+VSec note: Any reference to "user principal" has been converted to "tenant.slug" due to a custom change to
+the new terms configuration. PR: https://github.com/VigilantSec/detection-rules/pull/59
+
 Identifies access to email resources via Microsoft Graph API using an first-party application on behalf of a user
 principal. This behavior may indicate an adversary using a phished OAuth refresh token or a Primary Refresh Token (PRT)
 to access email resources. The pattern includes requests to Microsoft Graph API endpoints related to email, such as
@@ -115,7 +118,7 @@ reference = "https://attack.mitre.org/tactics/TA0009/"
 field = "new_terms_fields"
 value = [
     "azure.graphactivitylogs.properties.app_id",
-    "azure.graphactivitylogs.properties.user_principal_object_id",
+    "tenant.slug",
 ]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
