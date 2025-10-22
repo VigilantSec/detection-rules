@@ -25,9 +25,11 @@ Currently supported arguments:
 * elasticsearch_url
 * kibana_url
 * cloud_id
-* *_user (kibana and es)
-* *_password (kibana and es)
+* es_user 
+* es_password
 * api_key
+
+Authenticating to Kibana is only available using api_key.
 
 #### Using environment variables
 
@@ -46,6 +48,10 @@ Using the environment variable `DR_BYPASS_TIMELINE_TEMPLATE_VALIDATION` will byp
 
 Using the environment variable `DR_CLI_MAX_WIDTH` will set a custom max width for the click CLI. 
 For instance, some users may want to increase the default value in cases where help messages are cut off. 
+
+Using the environment variable `DR_REMOTE_ESQL_VALIDATION` will enable remote ESQL validation for rules that use ESQL queries. This validation will be performed whenever the rule is loaded including for example the view-rule command. This requires the appropriate kibana_url or cloud_id, api_key, and es_url to be set in the config file or as environment variables.
+
+Using the environment variable `DR_SKIP_EMPTY_INDEX_CLEANUP` will disable the cleanup of remote testing indexes that are created as part of the remote ESQL validation. By default, these indexes are deleted after the validation is complete, or upon validation error.
 
 ## Importing rules into the repo
 
@@ -104,6 +110,7 @@ Options:
   -snv, --strip-none-values       Strip None values from the rule
   -lc, --local-creation-date      Preserve the local creation date of the rule
   -lu, --local-updated-date       Preserve the local updated date of the rule
+  -lr, --load-rule-loading        Enable arbitrary rule loading from the rules directories (Can be very slow!)
   -h, --help                      Show this message and exit.
 ```
 
@@ -505,6 +512,7 @@ Options:
   -lu, --local-updated-date       Preserve the local updated date of the rule
   -cro, --custom-rules-only       Only export custom rules
   -eq, --export-query TEXT        Apply a query filter to exporting rules e.g. "alert.attributes.tags: \"test\"" to filter for rules that have the tag "test"
+  -lr, --load-rule-loading        Enable arbitrary rule loading from the rules directories (Can be very slow!)
   -h, --help                      Show this message and exit.
 
 ```
