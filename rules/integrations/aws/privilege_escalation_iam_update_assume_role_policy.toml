@@ -2,21 +2,26 @@
 creation_date = "2020/07/06"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2025/06/12"
+updated_date = "2025/10/17"
 
 [rule]
 author = ["Elastic"]
 description = """
-Identifies AWS CloudTrail events where an IAM role's trust policy has been updated by an IAM user or Assumed Role identity. The trust policy is a JSON document that defines which principals are allowed to assume the role. An attacker may attempt to modify this policy to gain the privileges of the role. This is a New Terms rule, which means it will only trigger once for each unique combination of the "cloud.account.id", "user.name" and "aws.cloudtrail.flattened.request_parameters.roleName" fields, that have not been seen making this API request within the last 14 days.
+Identifies AWS CloudTrail events where an IAM role's trust policy has been updated by an IAM user or Assumed Role
+identity. The trust policy is a JSON document that defines which principals are allowed to assume the role. An attacker
+may attempt to modify this policy to gain the privileges of the role. This is a New Terms rule, which means it will only
+trigger once for each unique combination of the "cloud.account.id", "user.name" and "target.entity.id" fields, that have
+not been seen making this API request.
 """
 false_positives = [
     """
-    Verify whether the user identity should be making changes in your environment. Policy updates from unfamiliar users should be investigated. If known behavior is causing false positives, it can be exempted from the rule.
+    Verify whether the user identity should be making changes in your environment. Policy updates from unfamiliar users
+    should be investigated. If known behavior is causing false positives, it can be exempted from the rule.
     """,
 ]
 from = "now-6m"
-interval = "5m"
 index = ["filebeat-*", "logs-aws.cloudtrail-*"]
+interval = "5m"
 language = "kuery"
 license = "Elastic License v2"
 name = "AWS IAM Assume Role Policy Update"
@@ -32,7 +37,7 @@ The role trust policy is a JSON document in which you define the principals you 
 
 - Review the `aws.cloudtrail.user_identity.arn` to determine the IAM User that performed the action. 
 - If an AssumedRole identity type performed the action review the `aws.cloudtrail.user_identity.session_context.session_issuer.arn` field to determine which role was used.
-- Review the `aws.cloudtrail.flattened.request_parameters.roleName` field to confirm the role that was updated.
+- Review the `target.entity.id` field to confirm the role that was updated.
 - Within the `aws.cloudtrail.request_parameters` field, review the `policyDocument` to understand the changes made to the trust policy.
 - If `aws.cloudtrail.user_identity.access_key_id` is present, investigate the access key used to perform the action as it may be compromised.
 - Identify the user account that performed the action and whether it should perform this kind of action.
@@ -89,24 +94,6 @@ event.dataset: "aws.cloudtrail"
 '''
 
 
-[rule.investigation_fields]
-field_names = [
-    "@timestamp",
-    "user.name",
-    "user_agent.original",
-    "source.ip",
-    "aws.cloudtrail.user_identity.type",
-    "aws.cloudtrail.user_identity.arn",
-    "aws.cloudtrail.user_identity.session_context.session_issuer.arn",
-    "aws.cloudtrail.user_identity.access_key_id",
-    "target.entity.id",
-    "event.action",
-    "event.outcome",
-    "cloud.account.id",
-    "cloud.region",
-    "aws.cloudtrail.request_parameters"
-]
-
 [[rule.threat]]
 framework = "MITRE ATT&CK"
 [[rule.threat.technique]]
@@ -118,15 +105,35 @@ id = "T1078.004"
 name = "Cloud Accounts"
 reference = "https://attack.mitre.org/techniques/T1078/004/"
 
+
+
 [rule.threat.tactic]
 id = "TA0004"
 name = "Privilege Escalation"
 reference = "https://attack.mitre.org/tactics/TA0004/"
 
+[rule.investigation_fields]
+field_names = [
+    "@timestamp",
+    "user.name",
+    "user_agent.original",
+    "source.ip",
+    "aws.cloudtrail.user_identity.type",
+    "aws.cloudtrail.user_identity.arn",
+    "aws.cloudtrail.user_identity.access_key_id",
+    "target.entity.id",
+    "event.action",
+    "event.outcome",
+    "cloud.account.id",
+    "cloud.region",
+    "aws.cloudtrail.request_parameters",
+]
+
 [rule.new_terms]
 field = "new_terms_fields"
-value = ["cloud.account.id", "user.name", "aws.cloudtrail.flattened.request_parameters.roleName"]
+value = ["cloud.account.id", "user.name", "target.entity.id"]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
 value = "now-14d"
+
 

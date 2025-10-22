@@ -34,6 +34,7 @@ CURR_DIR = Path(__file__).resolve().parent
 ROOT_DIR = CURR_DIR.parent
 ETC_DIR = ROOT_DIR / "detection_rules" / "etc"
 INTEGRATION_RULE_DIR = ROOT_DIR / "rules" / "integrations"
+CUSTOM_RULES_KQL = 'alert.attributes.params.ruleSource.type: "internal" or alert.attributes.params.immutable: false'
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -527,3 +528,41 @@ class PatchedTemplate(Template):
                 # another group we're not expecting
                 raise ValueError("Unrecognized named group in pattern", self.pattern)
         return ids
+
+
+def convert_to_nested_schema(flat_schemas: dict[str, str]) -> dict[str, Any]:
+    """Convert a flat schema to a nested schema with 'properties' for each sub-key."""
+    # NOTE this is needed to conform to Kibana's index mapping format
+    nested_schema = {}
+
+    for key, value in flat_schemas.items():
+        parts = key.split(".")
+        current_level = nested_schema
+
+        for part in parts[:-1]:
+            current_level = current_level.setdefault(part, {}).setdefault("properties", {})  # type: ignore[reportUnknownVariableType]
+
+        current_level[parts[-1]] = {"type": value}
+
+    return nested_schema  # type: ignore[reportUnknownVariableType]
+
+
+def combine_dicts(dest: dict[Any, Any], src: dict[Any, Any]) -> None:
+    """Combine two dictionaries recursively."""
+    for k, v in src.items():
+        if k in dest and isinstance(dest[k], dict) and isinstance(v, dict):
+            combine_dicts(dest[k], v)  # type: ignore[reportUnknownVariableType]
+        else:
+            dest[k] = v
+
+
+def get_column_from_index_mapping_schema(keys: list[str], current_schema: dict[str, Any] | None) -> str | None:
+    """Recursively traverse the schema to find the type of the column."""
+    key = keys[0]
+    if not current_schema:
+        return None
+    column = current_schema.get(key) or {}  # type: ignore[reportUnknownVariableType]
+    column_type = column.get("type") if column else None  # type: ignore[reportUnknownVariableType]
+    if len(keys) > 1:
+        return get_column_from_index_mapping_schema(keys[1:], current_schema=column.get("properties"))  # type: ignore[reportUnknownVariableType]
+    return column_type  # type: ignore[reportUnknownVariableType]

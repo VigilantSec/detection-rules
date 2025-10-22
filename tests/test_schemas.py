@@ -8,14 +8,19 @@
 import copy
 import unittest
 import uuid
+from pathlib import Path
 
 import eql
+import pytest
+import pytoml
 from marshmallow import ValidationError
 from semver import Version
 
 from detection_rules import utils
 from detection_rules.config import load_current_package_version
+from detection_rules.esql_errors import EsqlSemanticError
 from detection_rules.rule import TOMLRuleContents
+from detection_rules.rule_loader import RuleCollection
 from detection_rules.schemas import RULES_CONFIG, downgrade
 from detection_rules.version_lock import VersionLockFile
 
@@ -302,3 +307,53 @@ class TestVersions(unittest.TestCase):
         stack_map = utils.load_etc_dump(["stack-schema-map.yaml"])
         err_msg = f"There is no entry defined for the current package ({package_version}) in the stack-schema-map"
         self.assertIn(package_version, [Version.parse(v) for v in stack_map], err_msg)
+
+
+class TestESQLValidation(unittest.TestCase):
+    """Test ESQL rule validation"""
+
+    def test_esql_data_validation(self):
+        """Test ESQL rule data validation"""
+
+        # A random ESQL rule to deliver a test query
+        rule_path = Path("tests/data/command_control_dummy_production_rule.toml")
+        rule_body = rule_path.read_text()
+        rule_dict = pytoml.loads(rule_body)
+
+        # Most used order of the metadata fields
+        query = """
+            FROM logs-windows.powershell_operational* METADATA _id, _version, _index
+            | WHERE event.code == "4104"
+            | KEEP event.code
+        """
+        rule_dict["rule"]["query"] = query
+        _ = RuleCollection().load_dict(rule_dict, path=rule_path)
+
+        # The order of the metadata fields from the example in the docs -
+        # https://www.elastic.co/guide/en/security/8.17/rules-ui-create.html#esql-non-agg-query
+        query = """
+            FROM logs-windows.powershell_operational* METADATA _id, _index, _version
+            | WHERE event.code == "4104"
+            | KEEP event.code
+        """
+        rule_dict["rule"]["query"] = query
+        _ = RuleCollection().load_dict(rule_dict, path=rule_path)
+
+        # Different metadata fields
+        with pytest.raises(EsqlSemanticError):
+            query = """
+                FROM logs-windows.powershell_operational* METADATA _foo, _index
+                | WHERE event.code == "4104"
+                | KEEP event.code
+            """
+            rule_dict["rule"]["query"] = query
+            _ = RuleCollection().load_dict(rule_dict, path=rule_path)
+
+        # Missing `keep`
+        with pytest.raises(EsqlSemanticError):
+            query = """
+                FROM logs-windows.powershell_operational* METADATA _id, _index, _version
+                | WHERE event.code == "4104"
+            """
+            rule_dict["rule"]["query"] = query
+            _ = RuleCollection().load_dict(rule_dict, path=rule_path)

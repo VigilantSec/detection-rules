@@ -29,6 +29,8 @@ from semver import Version
 
 from . import beats, ecs, endgame, utils
 from .config import load_current_package_version, parse_rules_config
+from .esql import get_esql_query_event_dataset_integrations
+from .esql_errors import EsqlSemanticError
 from .integrations import (
     find_least_compatible_version,
     get_integration_schema_fields,
@@ -82,18 +84,18 @@ class DictRule:
 
     @property
     def data(self) -> dict[str, Any]:
-        """Rule portion of TOML file rule."""
-        return self.contents.get("data") or self.contents
+        """Rule portion of TOML file rule. Supports nested and flattened rule dictionaries"""
+        return self.contents.get("data", {}) or self.contents or self.contents.get("rule", {})
 
     @property
     def id(self) -> str:
-        """Get the rule ID."""
-        return self.data["rule_id"]  # type: ignore[reportUnknownMemberType]
+        """Get the rule ID. Supports nested and flattened rule dictionaries."""
+        return self.data.get("rule_id") or self.data.get("rule", {}).get("rule_id")
 
     @property
     def name(self) -> str:
-        """Get the rule name."""
-        return self.data["name"]  # type: ignore[reportUnknownMemberType]
+        """Get the rule name. Supports nested and flattened rule dictionaries"""
+        return self.data.get("name") or self.data.get("rule", {}).get("name")
 
     def __hash__(self) -> int:
         """Get the hash of the rule."""
@@ -650,8 +652,6 @@ class QueryValidator:
     @cached
     def get_required_fields(self, index: str) -> list[dict[str, Any]]:
         """Retrieves fields needed for the query along with type information from the schema."""
-        if isinstance(self, ESQLValidator):
-            return []
 
         current_version = Version.parse(load_current_package_version(), optional_minor_and_patch=True)
         ecs_version = get_stack_schemas()[str(current_version)]["ecs"]
@@ -665,7 +665,9 @@ class QueryValidator:
         # construct integration schemas
         packages_manifest = load_integrations_manifests()
         integrations_schemas = load_integrations_schemas()
-        datasets, _ = beats.get_datasets_and_modules(self.ast)
+        datasets: set[str] = set()
+        if self.ast:
+            datasets, _ = beats.get_datasets_and_modules(self.ast)
         package_integrations = parse_datasets(list(datasets), packages_manifest)
         int_schema: dict[str, Any] = {}
         data = {"notify": False}
@@ -693,6 +695,9 @@ class QueryValidator:
                 elif endgame_schema:
                     field_type = endgame_schema.endgame_schema.get(fld, None)
 
+            if not field_type and isinstance(self, ESQLValidator):
+                field_type = self.get_unique_field_type(fld)
+
             required.append({"name": fld, "type": field_type or "unknown", "ecs": is_ecs})
 
         return sorted(required, key=lambda f: f["name"])
@@ -710,8 +715,8 @@ class QueryValidator:
     @cached
     def get_endgame_schema(self, indices: list[str], endgame_version: str) -> endgame.EndgameSchema | None:
         """Get an assembled flat endgame schema."""
-
-        if indices and "endgame-*" not in indices:
+        # Only include endgame when explicitly requested by TOML via indices
+        if not indices or "endgame-*" not in indices:
             return None
 
         endgame_schema = endgame.read_endgame_schema(endgame_version=endgame_version)
@@ -809,6 +814,36 @@ class ThresholdQueryRuleData(QueryRuleData):
     type: Literal["threshold"]  # type: ignore[reportIncompatibleVariableOverride]
     threshold: ThresholdMapping
     alert_suppression: ThresholdAlertSuppression | None = field(metadata={"metadata": {"min_compat": "8.12"}})  # type: ignore[reportIncompatibleVariableOverride]
+
+    def validate(self, meta: RuleMeta) -> None:
+        """Validate threshold fields count based on stack version."""
+        current_min_stack = load_current_package_version()
+        min_stack_raw = meta.min_stack_version or current_min_stack
+        min_stack = Version.parse(min_stack_raw, optional_minor_and_patch=True)
+        cutoff = Version.parse("9.2.0")
+
+        default_cap_lt_9_2 = 3
+        default_cap_ge_9_2 = 5
+        is_ge_9_2 = min_stack >= cutoff
+        max_fields_allowed = default_cap_ge_9_2 if is_ge_9_2 else default_cap_lt_9_2
+
+        fields = self.threshold.field or []
+        if len(fields) > max_fields_allowed:
+            # Tailored hint based on stack cap in effect
+            if is_ge_9_2:
+                hint = f" Reduce to {max_fields_allowed} or fewer fields."
+            else:
+                hint = (
+                    f" Reduce to {max_fields_allowed} or fewer fields, or set "
+                    "metadata.min_stack_version to 9.2.0+ "
+                    f"to allow up to {default_cap_ge_9_2}."
+                )
+
+            raise ValidationError(
+                f"threshold field supports at most {max_fields_allowed} field(s) for min_stack_version "
+                f"{min_stack_raw or 'unspecified (<9.2 assumed)'}. "
+                f"Received {len(fields)} group_by fields." + hint
+            )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -929,27 +964,35 @@ class ESQLRuleData(QueryRuleData):
     def validates_esql_data(self, data: dict[str, Any], **_: Any) -> None:
         """Custom validation for query rule type and subclasses."""
         if data.get("index"):
-            raise ValidationError("Index is not a valid field for ES|QL rule type.")
+            raise EsqlSemanticError("Index is not a valid field for ES|QL rule type.")
 
         # Convert the query string to lowercase to handle case insensitivity
         query_lower = data["query"].lower()
 
-        # Combine both patterns using an OR operator and compile the regex
+        # Combine both patterns using an OR operator and compile the regex.
+        # The first part matches the metadata fields in the from clause by allowing one or
+        # multiple indices and any order of the metadata fields
+        # The second part matches the stats command with the by clause
         combined_pattern = re.compile(
-            r"(from\s+\S+\s+metadata\s+_id,\s*_version,\s*_index)|(\bstats\b.*?\bby\b)", re.DOTALL
+            r"(from\s+(?:\S+\s*,\s*)*\S+\s+metadata\s+"
+            r"(?:_id|_version|_index)(?:,\s*(?:_id|_version|_index)){2})"
+            r"|(\bstats\b.*?\bby\b)",
+            re.DOTALL,
         )
 
         # Ensure that non-aggregate queries have metadata
         if not combined_pattern.search(query_lower):
-            raise ValidationError(
+            raise EsqlSemanticError(
                 f"Rule: {data['name']} contains a non-aggregate query without"
                 f" metadata fields '_id', '_version', and '_index' ->"
                 f" Add 'metadata _id, _version, _index' to the from command or add an aggregate function."
             )
 
         # Enforce KEEP command for ESQL rules
-        # if "| keep" not in query_lower:
-        #     raise ValidationError(
+        # Match | followed by optional whitespace/newlines and then 'keep'
+        # keep_pattern = re.compile(r"\|\s*keep\b", re.IGNORECASE | re.DOTALL)
+        # if not keep_pattern.search(query_lower):
+        #     raise EsqlSemanticError(
         #         f"Rule: {data['name']} does not contain a 'keep' command -> Add a 'keep' command to the query."
         #     )
 
@@ -961,10 +1004,14 @@ class ThreatMatchRuleData(QueryRuleData):
     @dataclass(frozen=True)
     class Entries:
         @dataclass(frozen=True)
-        class ThreatMapEntry:
+        class ThreatMapEntry(StackCompatMixin):
             field: definitions.NonEmptyStr
             type: Literal["mapping"]
             value: definitions.NonEmptyStr
+            # Use dataclasses.field to avoid shadowing by attribute name "field"
+            negate: bool | None = dataclasses.field(  # type: ignore[reportIncompatibleVariableOverride]
+                metadata={"metadata": {"min_compat": "9.2"}}
+            )
 
         entries: list[ThreatMapEntry]
 
@@ -997,13 +1044,52 @@ class ThreatMatchRuleData(QueryRuleData):
 
             threat_query_validator.validate(self, meta)
 
+    def validate(self, meta: RuleMeta) -> None:  # noqa: ARG002
+        """Validate negate usage and group semantics for threat mapping."""
+
+        for idx, group in enumerate(self.threat_mapping or []):
+            entries = group.entries or []
+
+            # Enforce: DOES NOT MATCH entries are allowed only if there is at least
+            # one MATCH (non-negated) entry in the same group
+            has_negate = any(bool(getattr(e, "negate", False)) for e in entries)
+            has_match = any(not bool(getattr(e, "negate", False)) for e in entries)
+            if has_negate and not has_match:
+                msg = (
+                    f"threat_mapping group {idx}: DOES NOT MATCH entries require at least one MATCH "
+                    "(non-negated) entry in the same group."
+                )
+                raise ValidationError(msg)
+
+            # Track negate presence per (source.field, indicator.field) pair to detect
+            # conflicts where both MATCH and DOES NOT MATCH are defined for the same pair
+            pair_to_negates: dict[tuple[str, str], set[bool]] = {}
+            for e in entries:
+                is_neg = bool(getattr(e, "negate", False))
+                pair_to_negates.setdefault((e.field, e.value), set()).add(is_neg)
+
+            for (src_field, ind_field), flags in pair_to_negates.items():
+                if True in flags and False in flags:
+                    msg = (
+                        f"threat_mapping group {idx}: cannot define both MATCH and DOES NOT MATCH for the same "
+                        f"source and indicator fields: '{src_field}' <-> '{ind_field}'."
+                    )
+                    raise ValidationError(msg)
+
 
 # All of the possible rule types
 # Sort inverse of any inheritance - see comment in TOMLRuleContents.to_dict
+# ThresholdQueryRuleData needs to be first in this union to handle cases where there is ambiguity between
+# ThresholdAlertSuppression and AlertSuppressionMapping. Since AlertSuppressionMapping has duration as an
+# optional field, ThresholdAlertSuppression objects can be mistakenly loaded as an AlertSuppressionMapping
+# object with group_by and missing_fields_strategy as missing parameters, resulting in an error.
+# Checking the type against ThresholdQueryRuleData first in the union prevent this from occurring.
+# Please also keep issue 1141 in mind when handling union schemas.
+
 AnyRuleData = (
-    EQLRuleData
+    ThresholdQueryRuleData
+    | EQLRuleData
     | ESQLRuleData
-    | ThresholdQueryRuleData
     | ThreatMatchRuleData
     | MachineLearningRuleData
     | QueryRuleData
@@ -1426,21 +1512,24 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
     ) -> list[dict[str, Any]] | None:
         packaged_integrations: list[dict[str, Any]] = []
         datasets, _ = beats.get_datasets_and_modules(data.get("ast") or [])  # type: ignore[reportArgumentType]
-
+        if isinstance(data, ESQLRuleData):
+            dataset_objs = get_esql_query_event_dataset_integrations(data.query)
+            datasets.update(str(obj) for obj in dataset_objs)
         # integration is None to remove duplicate references upstream in Kibana
-        # chronologically, event.dataset is checked for package:integration, then rule tags
+        # chronologically, event.dataset, data_stream.dataset is checked for package:integration, then rule tags
         # if both exist, rule tags are only used if defined in definitions for non-dataset packages
         # of machine learning analytic packages
 
-        rule_integrations = meta.get("integration", [])
-        if rule_integrations:
-            for integration in rule_integrations:
-                ineligible_integrations = [
-                    *definitions.NON_DATASET_PACKAGES,
-                    *map(str.lower, definitions.MACHINE_LEARNING_PACKAGES),
-                ]
-                if integration in ineligible_integrations or isinstance(data, MachineLearningRuleData):
-                    packaged_integrations.append({"package": integration, "integration": None})
+        rule_integrations: str | list[str] = meta.get("integration") or []
+        if isinstance(rule_integrations, str):
+            rule_integrations = [rule_integrations]
+        for integration in rule_integrations:
+            ineligible_integrations = [
+                *definitions.NON_DATASET_PACKAGES,
+                *map(str.lower, definitions.MACHINE_LEARNING_PACKAGES),
+            ]
+            if integration in ineligible_integrations or isinstance(data, MachineLearningRuleData):
+                packaged_integrations.append({"package": integration, "integration": None})
 
         packaged_integrations.extend(parse_datasets(list(datasets), package_manifest))
 
@@ -1754,7 +1843,7 @@ def parse_datasets(datasets: list[str], package_manifest: dict[str, Any]) -> lis
         else:
             package = value
 
-        if package in list(package_manifest):
+        if package in package_manifest:
             packaged_integrations.append({"package": package, "integration": integration})
     return packaged_integrations
 
