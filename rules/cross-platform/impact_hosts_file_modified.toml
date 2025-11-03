@@ -80,21 +80,26 @@ type = "eql"
 query = '''
 any where
 
-  /* file events for creation; file change events are not captured by some of the included sources for linux and so may
-     miss this, which is the purpose of the process + command line args logic below */
+  /* filter out macos due to volume and lack of process information in crowdstrike */
+  not (host.os.type == "macos" and event.dataset == "crowdstrike.fdr")
+  and
   (
-   event.category == "file" and event.type in ("change", "creation") and
-     file.path : ("/private/etc/hosts", "/etc/hosts", "?:\\Windows\\System32\\drivers\\etc\\hosts") and 
-     not process.name in ("dockerd", "rootlesskit", "podman", "crio")
-  )
-  or
+    /* file events for creation; file change events are not captured by some of the included sources for linux and so may
+      miss this, which is the purpose of the process + command line args logic below */
+    (
+    event.category == "file" and event.type in ("change", "creation") and
+      file.path : ("/private/etc/hosts", "/etc/hosts", "?:\\Windows\\System32\\drivers\\etc\\hosts") and 
+      not process.name in ("dockerd", "rootlesskit", "podman", "crio")
+    )
+    or
 
-  /* process events for change targeting linux only */
-  (
-   event.category == "process" and event.type in ("start") and
-     process.name in ("nano", "vim", "vi", "emacs", "echo", "sed") and
-     process.args : ("/etc/hosts") and 
-     not process.parent.name in ("dhclient-script", "google_set_hostname")
+    /* process events for change targeting linux only */
+    (
+    event.category == "process" and event.type in ("start") and
+      process.name in ("nano", "vim", "vi", "emacs", "echo", "sed") and
+      process.args : ("/etc/hosts") and 
+      not process.parent.name in ("dhclient-script", "google_set_hostname")
+    )
   )
 '''
 
