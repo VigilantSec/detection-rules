@@ -68,7 +68,7 @@ tags = [
     "Resources: Investigation Guide",
     "Use Case: Threat Detection",
     "Tactic: Exfiltration",
-    "vigilant.alerting.data_exfiltration",
+    "vigilant.alerting.exfil",
     "vigilant.alerting.high_risk"
 ]
 timestamp_override = "event.ingested"
