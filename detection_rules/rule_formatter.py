@@ -146,14 +146,15 @@ class RuleTomlEncoder(toml.TomlEncoder):  # type: ignore[reportMissingTypeArgume
 
         if multiline:
             if raw:
-                # Upstream appears to have fixed the issue with backslashes so we may no longer need this re.sub
                 return re.sub(r'(?<!\\)\\(?!\\)', r'\\\\', "".join([TRIPLE_DQ, *initial_newline, *lines, TRIPLE_DQ]))
             return "\n".join([TRIPLE_SQ] + [json.dumps(line)[1:-1] for line in lines] + [TRIPLE_SQ])
         if raw:
             return f"'{lines[0]:s}'"
         # In the toml library there is a magic replace for \\\\x -> u00 that we wish to avoid until #4979 is resolved
         # Also addresses an issue where backslashes in certain strings are not properly escaped in self._old_dump_str(v)
-        return json.dumps(v)
+        # elastic comment ^; vigilant comment -> we have to add ensure_ascii here to output unicde characters as is instead
+        # of as codes e.g. \u00a1. Idk what elastic is intending with this one, maybe they want those code :shrug:
+        return json.dumps(v, ensure_ascii=False)
 
     def _dump_flat_list(self, v: Iterable[Any]) -> str:
         """A slightly tweaked version of original dump_list, removing trailing commas."""
