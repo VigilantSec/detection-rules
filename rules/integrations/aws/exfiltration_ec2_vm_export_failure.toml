@@ -73,7 +73,7 @@ tags = [
     "Tactic: Collection",
     "Resources: Investigation Guide",
     "vigilant.alerting.high_risk",
-    "vigilant.alerting.data_exfiltration"
+    "vigilant.alerting.exfil"
 ]
 timestamp_override = "event.ingested"
 type = "query"

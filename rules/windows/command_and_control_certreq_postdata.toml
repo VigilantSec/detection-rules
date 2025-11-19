@@ -123,7 +123,7 @@ tags = [
     "Data Source: SentinelOne",
     "Data Source: Crowdstrike",
     "Resources: Investigation Guide",
-    "vigilant.alerting.data_exfiltration",
+    "vigilant.alerting.exfil",
     "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"

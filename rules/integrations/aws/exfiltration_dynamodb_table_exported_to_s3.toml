@@ -60,7 +60,7 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Exfiltration",
     "vigilant.alerting.passthrough",
-    "vigilant.alerting.data_exfiltration"
+    "vigilant.alerting.exfil"
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
