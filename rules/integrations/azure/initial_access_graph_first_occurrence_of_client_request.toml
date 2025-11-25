@@ -138,8 +138,7 @@ reference = "https://attack.mitre.org/tactics/TA0006/"
 [rule.new_terms]
 field = "new_terms_fields"
 value = [
-    "azure.graphactivitylogs.properties.app_id",
-    "tenant.slug"
+    "azure.graphactivitylogs.properties.app_id"
 ]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
