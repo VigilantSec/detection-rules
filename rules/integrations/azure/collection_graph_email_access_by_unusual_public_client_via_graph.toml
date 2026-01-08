@@ -95,7 +95,7 @@ http.request.method: (GET or POST or PUT or PATCH or DELETE) and (
     azure.graphactivitylogs.properties.requestUri: (*mail* or *messages* or *inbox*)
   ) or
   azure.graphactivitylogs.properties.scopes: (
-    "Mail.Read" or "Mail.ReadWrite" or "Mail.Send" or "email"
+    "Mail.Read" or "Mail.ReadWrite" or "Mail.Send"
   )
 )
 '''
