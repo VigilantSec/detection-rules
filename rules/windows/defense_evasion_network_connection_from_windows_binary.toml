@@ -41,7 +41,8 @@ index = [
     "logs-endpoint.events.process-*",
     "logs-endpoint.events.network-*",
     "logs-windows.sysmon_operational-*",
-    "winlogbeat-*"
+    "winlogbeat-*",
+    "vigilant.disabled",
 ]
 language = "eql"
 license = "Elastic License v2"
