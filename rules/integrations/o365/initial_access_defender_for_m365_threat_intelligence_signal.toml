@@ -80,7 +80,8 @@ tags = [
     "Data Source: Microsoft Defender Threat Intelligence",
     "Use Case: Threat Detection",
     "Tactic: Initial Access",
-    "Resources: Investigation Guide"
+    "Resources: Investigation Guide",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"
