@@ -84,6 +84,7 @@ tags = [
     "Tactic: Persistence",
     "vigilant.alerting.sensitive_environment_changes",
     "vigilant.alerting.high_risk",
+    "vigilant.alerting.beta"
 ]
 timestamp_override = "event.ingested"
 type = "query"
