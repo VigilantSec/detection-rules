@@ -68,6 +68,7 @@ tags = [
     "Data Source: Crowdstrike",
     "Data Source: SentinelOne",
     "Resources: Investigation Guide",
+    "vigilant.pup.behavioral"
 ]
 timestamp_override = "event.ingested"
 type = "eql"

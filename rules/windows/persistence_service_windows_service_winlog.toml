@@ -105,6 +105,7 @@ tags = [
     "Resources: Investigation Guide",
     "Data Source: Windows Security Event Logs",
     "Data Source: Windows System Event Logs",
+    "vigilant.pup.behavioral"
 ]
 timestamp_override = "event.ingested"
 type = "eql"
