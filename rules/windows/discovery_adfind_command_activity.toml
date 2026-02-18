@@ -25,7 +25,7 @@ index = [
 ]
 language = "eql"
 license = "Elastic License v2"
-name = "AdFind Command Activity"
+name = "Monitoring Tool - AdFind"
 note = """## Triage and analysis
 
 ### Investigating AdFind Command Activity
@@ -85,6 +85,8 @@ tags = [
     "Data Source: Sysmon",
     "Data Source: SentinelOne",
     "Data Source: Crowdstrike",
+    "vigilant.pup",
+    "vigilant.pup.monitoring"
 ]
 timestamp_override = "event.ingested"
 type = "eql"
