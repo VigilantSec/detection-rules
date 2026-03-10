@@ -1,8 +1,8 @@
 [metadata]
 creation_date = "2025/04/29"
-integration = ["endpoint"]
+integration = ["endpoint", "crowdstrike"]
 maturity = "production"
-updated_date = "2025/07/07"
+updated_date = "2025/12/18"
 
 [rule]
 author = ["Elastic"]
@@ -14,7 +14,8 @@ NMI watchdog by setting kernel.nmi_watchdog to 0. These changes may be used to i
 """
 from = "now-9m"
 index = [
-    "logs-endpoint.events.process*",
+  "logs-endpoint.events.process*",
+  "logs-crowdstrike.fdr*",
 ]
 language = "eql"
 license = "Elastic License v2"
@@ -55,22 +56,23 @@ Kernel features in Linux systems are critical for maintaining security and stabi
 - Escalate the incident to the security operations center (SOC) or relevant security team for further investigation and correlation with other potential threats across the network.
 - Review and update security policies and configurations to prevent unauthorized kernel modifications, including enforcing stricter access controls and auditing procedures.
 """
-risk_score = 21
+risk_score = 47
 rule_id = "3aff6ab1-18bd-427e-9d4c-c5732110c261"
-severity = "low"
+severity = "medium"
 tags = [
-    "Domain: Endpoint",
-    "OS: Linux",
-    "Use Case: Threat Detection",
-    "Tactic: Defense Evasion",
-    "Tactic: Discovery",
-    "Data Source: Elastic Defend",
-    "Resources: Investigation Guide",
+  "Domain: Endpoint",
+  "OS: Linux",
+  "Use Case: Threat Detection",
+  "Tactic: Defense Evasion",
+  "Tactic: Discovery",
+  "Data Source: Elastic Defend",
+  "Resources: Investigation Guide",
+  "Data Source: Crowdstrike",
 ]
 timestamp_override = "event.ingested"
 type = "eql"
 query = '''
-process where host.os.type == "linux" and event.type == "start" and event.action == "exec" and
+process where host.os.type == "linux" and event.type == "start" and event.action in ("exec", "ProcessRollup2") and
 process.command_line : (
   "*/etc/sysctl.conf*", "*/etc/sysctl.d/*", "*/proc/sys/kernel/nmi_watchdog*",
   "*/proc/sys/vm/nr_hugepages*", "*/proc/sys/kernel/yama/ptrace_scope*",
@@ -80,16 +82,26 @@ process.command_line : (
   "*kernel.nmi_watchdog*", "*vm.nr_hugepages*", "*vm.drop_caches*",
   "*kernel.sysrq*"
 ) and
-process.parent.executable != null and 
+?process.parent.executable != null and 
 (
   (process.name == "tee" and process.args like "-*a*") or // also detects --append
   (process.name == "cat" and not process.parent.name in ("bash", "dash", "sh", "tcsh", "csh", "zsh", "ksh", "fish")) or
   (process.name == "grep" and process.args_count == 3 and not process.parent.name in ("bash", "dash", "sh", "tcsh", "csh", "zsh", "ksh", "fish")) or
   (process.name == "sysctl" and process.args like ("*-w*", "*--write*", "*=*")) or
   (process.name in ("bash", "dash", "sh", "tcsh", "csh", "zsh", "ksh", "fish") and process.args == "-c" and process.args : "*echo *")
+) and
+not (
+  process.parent.executable in (
+    "/opt/novell/groupwise/agents/bin/gwia", "/opt/novell/groupwise/agents/bin/gwmta", "/opt/novell/groupwise/agents/bin/gwpoa",
+    "/opt/illumio_ven/system/etc/init.d/illumio-firewall", "/usr/bin/oracle-database-preinstall-19c-verify", "/usr/bin/make",
+    "/usr/local/qualys/cloud-agent/bin/qualys-scan-util"
+  ) or
+  process.parent.executable like "/tmp/CVU_19_resource*/checkmemlock.sh" or
+  process.parent.args == "/usr/share/mysql/mysql-systemd-start" or
+  process.parent.command_line like "*ansible*" or
+  (process.parent.name in ("crond", "cron") and process.command_line like "*drop_caches*")
 )
 '''
-
 [[rule.threat]]
 framework = "MITRE ATT&CK"
 
