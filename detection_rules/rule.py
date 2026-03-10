@@ -228,7 +228,7 @@ class Tactic(BaseThreatEntry):
 class ThreatMapping(MarshmallowDataclassMixin):
     """Mapping to a threat framework."""
 
-    framework: Literal["MITRE ATT&CK"]
+    framework: Literal["MITRE ATT&CK", "MITRE ATLAS"]
     tactic: Tactic
     technique: list[Technique] | None = None
 
@@ -988,13 +988,29 @@ class ESQLRuleData(QueryRuleData):
                 f" Add 'metadata _id, _version, _index' to the from command or add an aggregate function."
             )
 
-        # Enforce KEEP command for ESQL rules
+        # Enforce KEEP command for ESQL rules and that METADATA fields are present in non-aggregate queries
         # Match | followed by optional whitespace/newlines and then 'keep'
-        # keep_pattern = re.compile(r"\|\s*keep\b", re.IGNORECASE | re.DOTALL)
-        # if not keep_pattern.search(query_lower):
+        # keep_pattern = re.compile(r"\|\s*keep\b\s+([^\|]+)", re.IGNORECASE | re.DOTALL)
+        # keep_matches = list(keep_pattern.finditer(query_lower))
+        # if not keep_matches:
         #     raise EsqlSemanticError(
         #         f"Rule: {data['name']} does not contain a 'keep' command -> Add a 'keep' command to the query."
         #     )
+
+        # Ensure that keep clause includes metadata fields on non-aggregate queries
+        aggregate_pattern = re.compile(r"\|\s*stats\b(?:\s+([^\|]+?))?(?:\s+by\s+([^\|]+))?", re.IGNORECASE | re.DOTALL)
+        if not aggregate_pattern.search(query_lower):
+            for keep_match in keep_matches:
+                raw_keep = re.sub(r"//.*", "", keep_match.group(1))
+                keep_fields = [field.strip() for field in raw_keep.split(",") if field.strip()]
+                if "*" not in keep_fields:
+                    required_metadata = {"_id", "_version", "_index"}
+                    if not required_metadata.issubset(set(map(str.strip, keep_fields))):
+                        raise EsqlSemanticError(
+                            f"Rule: {data['name']} contains a keep clause without"
+                            f" metadata fields '_id', '_version', and '_index' ->"
+                            f" Add '_id', '_version', '_index' to the keep command."
+                        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1245,6 +1261,22 @@ class BaseRuleContents(ABC):
 
         return obj
 
+    def _uses_keep_star(self, hashable_dict: dict[str, Any]) -> bool:
+        """Check if this is an ES|QL rule that uses `| keep *` or fields ending with '*'."""
+        if hashable_dict.get("language") != "esql":
+            return False
+
+        query: str | None = hashable_dict.get("query")
+        if not isinstance(query, str) or not query:
+            return False
+
+        keep_pattern = re.compile(r"\|\s*keep\b\s+([^\|]+)", re.IGNORECASE | re.DOTALL)
+        keep_match: re.Match[str] | None = keep_pattern.search(query)
+        if keep_match:
+            keep_fields: list[str] = [field.strip() for field in keep_match.group(1).split(",")]
+            return any(field == "*" or field.endswith("*") for field in keep_fields)
+        return False
+
     @abstractmethod
     def to_api_format(self, include_version: bool = True) -> dict[str, Any]:
         """Convert the rule to the API format."""
@@ -1258,6 +1290,11 @@ class BaseRuleContents(ABC):
         # drop related integrations if present
         if not include_integrations:
             hashable_dict.pop("related_integrations", None)
+
+        # For ES|QL rules with `| keep *`, exclude required_fields since they're
+        # non-deterministic (depend on integration schemas which vary by stack version)
+        if self._uses_keep_star(hashable_dict):
+            hashable_dict.pop("required_fields", None)
 
         return hashable_dict
 
@@ -1298,7 +1335,7 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
             )
 
         # circumvent frozen class
-        self.__dict__["_version_lock"] = value
+        self.__dict__["_version_lock"] = value  # type: ignore[reportIndexIssue]
 
     @classmethod
     def all_rule_types(cls) -> set[str]:
@@ -1341,7 +1378,9 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
                     items_to_update: list[dict[str, Any]] = [
                         item
                         for item in value  # type: ignore[reportUnknownVariableType]
-                        if isinstance(item, dict) and get_nested_value(item, sub_key) is None
+                        if isinstance(item, dict)
+                        and get_nested_value(item, sub_key) is None
+                        and get_nested_value(item, "action_type_id") not in definitions.SYSTEM_ACTION_TYPE_IDS
                     ]
                     for item in items_to_update:
                         set_nested_value(item, sub_key, None)
@@ -1528,7 +1567,11 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
                 *definitions.NON_DATASET_PACKAGES,
                 *map(str.lower, definitions.MACHINE_LEARNING_PACKAGES),
             ]
-            if integration in ineligible_integrations or isinstance(data, MachineLearningRuleData):
+            if (
+                integration in ineligible_integrations
+                or isinstance(data, MachineLearningRuleData)
+                or (isinstance(data, ESQLRuleData) and integration not in datasets)
+            ):
                 packaged_integrations.append({"package": integration, "integration": None})
 
         packaged_integrations.extend(parse_datasets(list(datasets), package_manifest))
@@ -1706,7 +1749,7 @@ class DeprecatedRuleContents(BaseRuleContents):
             )
 
         # circumvent frozen class
-        self.__dict__["_version_lock"] = value
+        self.__dict__["_version_lock"] = value  # type: ignore[reportIndexIssue]
 
     @property
     def id(self) -> str | None:  # type: ignore[reportIncompatibleMethodOverride]

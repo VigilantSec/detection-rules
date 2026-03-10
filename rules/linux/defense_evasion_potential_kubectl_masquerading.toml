@@ -1,8 +1,10 @@
 [metadata]
 creation_date = "2025/06/19"
-integration = ["endpoint", "crowdstrike", "sentinel_one_cloud_funnel"]
+integration = ["endpoint", "crowdstrike", "sentinel_one_cloud_funnel", "cloud_defend"]
 maturity = "production"
-updated_date = "2025/07/07"
+min_stack_comments = "Defend for Containers integration was re-introduced in 9.3.0"
+min_stack_version = "9.3.0"
+updated_date = "2026/02/05"
 
 [rule]
 author = ["Elastic"]
@@ -18,6 +20,7 @@ index = [
     "logs-crowdstrike.fdr*",
     "logs-endpoint.events.process*",
     "logs-sentinel_one_cloud_funnel.*",
+    "logs-cloud_defend.process*",
 ]
 language = "eql"
 license = "Elastic License v2"
@@ -60,7 +63,7 @@ Kubectl is a command-line tool for interacting with Kubernetes clusters, crucial
 - Escalate the incident to the security operations team for further investigation and to determine if additional systems or data have been affected.
 """
 references = ["https://kubernetes.io/docs/reference/kubectl/"]
-risk_score = 21
+risk_score = 47
 rule_id = "2388c687-cb2c-4b7b-be8f-6864a2385048"
 setup = """## Setup
 
@@ -87,7 +90,7 @@ For more details on Elastic Agent configuration settings, refer to the [helper g
 - To complete the integration, select "Add Elastic Agent to your hosts" and continue to the next section to install the Elastic Agent on your hosts.
 For more details on Elastic Defend refer to the [helper guide](https://www.elastic.co/guide/en/security/current/install-endpoint.html).
 """
-severity = "low"
+severity = "medium"
 tags = [
     "Domain: Endpoint",
     "Domain: Container",
@@ -99,6 +102,7 @@ tags = [
     "Data Source: Elastic Endgame",
     "Data Source: Crowdstrike",
     "Data Source: SentinelOne",
+    "Data Source: Elastic Defend for Containers",
     "Resources: Investigation Guide",
 ]
 timestamp_override = "event.ingested"
@@ -107,10 +111,10 @@ query = '''
 process where host.os.type == "linux" and event.type == "start" and
 event.action in ("exec", "exec_event", "start", "executed", "process_started") and
 (
-  process.executable like~ ("/tmp/*", "/var/tmp/*", "/dev/shm/*", "/root/*", "/var/www/*", "./kubectl", "/home/*/kubectl") or
+  process.executable like~ ("/tmp/*", "/var/tmp/*", "/dev/shm/*", "/root/*", "/var/www/*", "./kubectl") or
   process.name like ".*"
 ) and
-process.command_line like~ (
+process.args like~ (
 
   // get and describe commands
   "*get po*", "*get deploy*", "*get node*", "*get svc*", "*get service*", "*get secret*", "*get clusterrole*", "*get ingress*",

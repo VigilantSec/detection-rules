@@ -2,7 +2,7 @@
 creation_date = "2025/04/25"
 integration = ["endpoint", "crowdstrike", "sentinel_one_cloud_funnel"]
 maturity = "production"
-updated_date = "2025/07/07"
+updated_date = "2026/02/20"
 
 [rule]
 author = ["Elastic"]
@@ -103,13 +103,18 @@ timestamp_override = "event.ingested"
 type = "eql"
 query = '''
 process where host.os.type == "linux" and event.type == "start" and event.action in ("exec", "exec_event", "start", "ProcessRollup2") and
-process.name in ("ssh", "sshd") and process.args == "-o" and
+process.name in ("ssh", "sshd") and process.args like "-o*" and
 process.command_line like~ (
   "*ProxyCommand*", "*LocalForward*", "*RemoteForward*", "*DynamicForward*", "*Tunnel*", "*GatewayPorts*",
   "*ExitOnForwardFailure*", "*ProxyCommand*", "*ProxyJump*"
+) and 
+not (
+  ?process.parent.args == "/usr/bin/pvedaemon" or
+  ?process.parent.command_line in ("pvedaemon", "pve-ha-lrm") or
+  ?process.working_directory like "*ansible*" or
+  process.command_line like "*ansible*"
 )
 '''
-
 [[rule.threat]]
 framework = "MITRE ATT&CK"
 

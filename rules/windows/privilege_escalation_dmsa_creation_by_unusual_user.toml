@@ -2,7 +2,7 @@
 creation_date = "2025/05/23"
 integration = ["system", "windows"]
 maturity = "production"
-updated_date = "2025/05/23"
+updated_date = "2026/02/19"
 
 [rule]
 author = ["Elastic"]
@@ -55,7 +55,7 @@ timestamp_override = "event.ingested"
 type = "new_terms"
 
 query = '''
-event.code:5137 and winlog.event_data.ObjectClass:"msDS-DelegatedManagedServiceAccount"
+event.code:5137 and host.os.type:"windows" and winlog.event_data.ObjectClass:"msDS-DelegatedManagedServiceAccount"
 '''
 
 
@@ -87,4 +87,4 @@ field = "new_terms_fields"
 value = ["winlog.event_data.SubjectUserName"]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
-value = "now-10d"
+value = "now-7d"
