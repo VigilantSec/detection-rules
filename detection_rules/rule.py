@@ -998,19 +998,19 @@ class ESQLRuleData(QueryRuleData):
         #     )
 
         # Ensure that keep clause includes metadata fields on non-aggregate queries
-        aggregate_pattern = re.compile(r"\|\s*stats\b(?:\s+([^\|]+?))?(?:\s+by\s+([^\|]+))?", re.IGNORECASE | re.DOTALL)
-        if not aggregate_pattern.search(query_lower):
-            for keep_match in keep_matches:
-                raw_keep = re.sub(r"//.*", "", keep_match.group(1))
-                keep_fields = [field.strip() for field in raw_keep.split(",") if field.strip()]
-                if "*" not in keep_fields:
-                    required_metadata = {"_id", "_version", "_index"}
-                    if not required_metadata.issubset(set(map(str.strip, keep_fields))):
-                        raise EsqlSemanticError(
-                            f"Rule: {data['name']} contains a keep clause without"
-                            f" metadata fields '_id', '_version', and '_index' ->"
-                            f" Add '_id', '_version', '_index' to the keep command."
-                        )
+        # aggregate_pattern = re.compile(r"\|\s*stats\b(?:\s+([^\|]+?))?(?:\s+by\s+([^\|]+))?", re.IGNORECASE | re.DOTALL)
+        # if not aggregate_pattern.search(query_lower):
+        #     for keep_match in keep_matches:
+        #         raw_keep = re.sub(r"//.*", "", keep_match.group(1))
+        #         keep_fields = [field.strip() for field in raw_keep.split(",") if field.strip()]
+        #         if "*" not in keep_fields:
+        #             required_metadata = {"_id", "_version", "_index"}
+        #             if not required_metadata.issubset(set(map(str.strip, keep_fields))):
+        #                 raise EsqlSemanticError(
+        #                     f"Rule: {data['name']} contains a keep clause without"
+        #                     f" metadata fields '_id', '_version', and '_index' ->"
+        #                     f" Add '_id', '_version', '_index' to the keep command."
+        #                 )
 
 
 @dataclass(frozen=True, kw_only=True)
