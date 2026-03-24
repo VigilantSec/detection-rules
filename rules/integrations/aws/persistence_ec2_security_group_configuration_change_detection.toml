@@ -79,7 +79,9 @@ tags = [
     "Use Case: Network Security Monitoring",
     "Resources: Investigation Guide",
     "Tactic: Persistence",
-    "Tactic: Defense Evasion"
+    "Tactic: Defense Evasion",
+    "vigilant.alerting.high_risk",
+    "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
 type = "query"
