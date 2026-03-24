@@ -70,7 +70,7 @@ tags = [
     "Tactic: Persistence",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",
-    "vigilant.alerting.high_risk",
+    "vigilant.alerting.passthrough",
     "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
