@@ -88,6 +88,7 @@ tags = [
     "Use Case: Risk Detection",
     "Tactic: Initial Access",
     "Resources: Investigation Guide",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"
