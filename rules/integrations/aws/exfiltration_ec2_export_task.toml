@@ -86,6 +86,8 @@ tags = [
     "Tactic: Exfiltration",
     "Tactic: Collection",
     "Resources: Investigation Guide",
+    "vigilant.alerting.exfil",
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "query"
