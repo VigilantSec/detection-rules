@@ -51,6 +51,7 @@ tags = [
     "Tactic: Privilege Escalation",
     "Data Source: Windows Security Event Logs",
     "Resources: Investigation Guide",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
