@@ -92,6 +92,7 @@ tags = [
     "Tactic: Initial Access",
     "vigilant.alerting.initial_access",
     "vigilant.alerting.high_risk",
+    "vigilant.filter.phishing_resistant",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
