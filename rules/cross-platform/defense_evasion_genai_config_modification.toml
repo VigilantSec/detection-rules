@@ -66,6 +66,7 @@ tags = [
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",
     "Domain: LLM",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
