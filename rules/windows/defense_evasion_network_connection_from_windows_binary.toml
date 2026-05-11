@@ -42,7 +42,6 @@ index = [
     "logs-endpoint.events.network-*",
     "logs-windows.sysmon_operational-*",
     "winlogbeat-*",
-    "vigilant.disabled",
 ]
 language = "eql"
 license = "Elastic License v2"
@@ -127,6 +126,7 @@ tags = [
     "Resources: Investigation Guide",
     "Data Source: Elastic Defend",
     "Data Source: Sysmon",
+    "vigilant.disabled",
 ]
 type = "eql"
 
