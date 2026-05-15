@@ -41,6 +41,7 @@ tags = [
     "Rule Type: BBR",
     "Domain: LLM",
     "Mitre Atlas: T0053",
+    "vigilant.disabled"
 ]
 timestamp_override = "event.ingested"
 type = "eql"
