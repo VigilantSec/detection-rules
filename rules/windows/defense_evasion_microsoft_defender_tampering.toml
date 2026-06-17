@@ -104,6 +104,8 @@ tags = [
     "Data Source: SentinelOne",
     "Data Source: Elastic Endgame",
     "Data Source: Crowdstrike",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.passthrough"
 ]
 timestamp_override = "event.ingested"
 type = "eql"

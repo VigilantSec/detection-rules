@@ -87,6 +87,8 @@ tags = [
     "Data Source: Elastic Defend",
     "Data Source: Sysmon",
     "Data Source: Microsoft Defender XDR",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.passthrough"
 ]
 timestamp_override = "event.ingested"
 type = "eql"

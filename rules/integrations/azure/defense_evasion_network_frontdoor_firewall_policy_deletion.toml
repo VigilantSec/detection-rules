@@ -74,6 +74,8 @@ tags = [
     "Use Case: Network Security Monitoring",
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",
+    "vigilant.disabled",
+    "DISABLED.NOTE - DUE TO OVERLAP WITH [SIGMA] Azure Network Firewall Policy Modified or Deleted (83c17918-746e-4bd9-920b-8e098bf88c23)",
 ]
 timestamp_override = "event.ingested"
 type = "query"
