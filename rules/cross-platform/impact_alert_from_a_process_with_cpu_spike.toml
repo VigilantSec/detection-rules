@@ -58,7 +58,8 @@ tags = [
     "Rule Type: Higher-Order Rule",
     "Resources: Investigation Guide",
     "Domain: Endpoint", 
-    "Tactic: Impact"
+    "Tactic: Impact",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
