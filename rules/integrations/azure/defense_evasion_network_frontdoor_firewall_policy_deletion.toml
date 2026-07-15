@@ -2,7 +2,7 @@
 creation_date = "2021/08/01"
 integration = ["azure"]
 maturity = "production"
-updated_date = "2025/12/10"
+updated_date = "2026/04/10"
 
 [rule]
 author = ["Austin Songer"]
@@ -74,12 +74,14 @@ tags = [
     "Use Case: Network Security Monitoring",
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",
+    "vigilant.disabled",
+    "DISABLED.NOTE - DUE TO OVERLAP WITH [SIGMA] Azure Network Firewall Policy Modified or Deleted (83c17918-746e-4bd9-920b-8e098bf88c23)",
 ]
 timestamp_override = "event.ingested"
 type = "query"
 
 query = '''
-event.dataset:azure.activitylogs and azure.activitylogs.operation_name:"MICROSOFT.NETWORK/FRONTDOORWEBAPPLICATIONFIREWALLPOLICIES/DELETE" and event.outcome:(Success or success)
+data_stream.dataset:azure.activitylogs and azure.activitylogs.operation_name:"MICROSOFT.NETWORK/FRONTDOORWEBAPPLICATIONFIREWALLPOLICIES/DELETE" and event.outcome:(Success or success)
 '''
 
 

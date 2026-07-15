@@ -2,7 +2,7 @@
 creation_date = "2025/03/04"
 integration = ["endpoint"]
 maturity = "production"
-updated_date = "2026/01/16"
+updated_date = "2026/06/01"
 
 [rule]
 author = ["Elastic"]
@@ -17,13 +17,13 @@ from = "now-61m"
 interval = "1h"
 language = "esql"
 license = "Elastic License v2"
-name = "Unusual Process Spawned from Web Server Parent"
+name = "Deprecated - Unusual Process Spawned from Web Server Parent"
 note = """ ## Triage and analysis
 
 > **Disclaimer**:
 > This investigation guide was created using generative AI technology and has been reviewed to improve its accuracy and relevance. While every effort has been made to ensure its quality, we recommend validating the content and adapting it to suit your specific environment and operational needs.
 
-### Investigating Unusual Process Spawned from Web Server Parent
+### Investigating Deprecated - Unusual Process Spawned from Web Server Parent
 
 Web servers like Apache, Nginx, and others are crucial for hosting applications and services. Adversaries exploit these servers by spawning unauthorized processes to maintain persistence or execute malicious commands. The detection rule identifies anomalies by monitoring low-frequency process spawns from web server parents, focusing on unusual user IDs, directories, and process counts, which may indicate potential threats.
 
@@ -165,7 +165,7 @@ from logs-endpoint.events.process-* metadata _id, _index, _version
     process.parent.executable,
     agent.id,
     host.name,
-    event.dataset,
+    data_stream.dataset,
     data_stream.namespace
 
 | stats
@@ -173,7 +173,7 @@ from logs-endpoint.events.process-* metadata _id, _index, _version
     Esql.agent_id_count_distinct = count_distinct(agent.id),
     Esql.host_name_values = values(host.name),
     Esql.agent_id_values = values(agent.id),
-    Esql.event_dataset_values = values(event.dataset),
+    Esql.data_stream_dataset_values = values(data_stream.dataset),
     Esql.data_stream_namespace_values = values(data_stream.namespace)
 
     by process.executable, process.working_directory, process.parent.executable
@@ -221,6 +221,21 @@ id = "T1059.004"
 name = "Unix Shell"
 reference = "https://attack.mitre.org/techniques/T1059/004/"
 
+[[rule.threat.technique.subtechnique]]
+id = "T1059.006"
+name = "Python"
+reference = "https://attack.mitre.org/techniques/T1059/006/"
+
+[[rule.threat.technique.subtechnique]]
+id = "T1059.007"
+name = "JavaScript"
+reference = "https://attack.mitre.org/techniques/T1059/007/"
+
+[[rule.threat.technique.subtechnique]]
+id = "T1059.011"
+name = "Lua"
+reference = "https://attack.mitre.org/techniques/T1059/011/"
+
 [rule.threat.tactic]
 id = "TA0002"
 name = "Execution"
@@ -238,3 +253,16 @@ reference = "https://attack.mitre.org/techniques/T1071/"
 id = "TA0011"
 name = "Command and Control"
 reference = "https://attack.mitre.org/tactics/TA0011/"
+
+[[rule.threat]]
+framework = "MITRE ATT&CK"
+
+[[rule.threat.technique]]
+id = "T1190"
+name = "Exploit Public-Facing Application"
+reference = "https://attack.mitre.org/techniques/T1190/"
+
+[rule.threat.tactic]
+id = "TA0001"
+name = "Initial Access"
+reference = "https://attack.mitre.org/tactics/TA0001/"
