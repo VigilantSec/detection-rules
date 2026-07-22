@@ -68,6 +68,7 @@ tags = [
     "vigilant.alerting.initial_access",
     "vigilant.alerting.high_risk",
     "vigilant.filter.phishing_resistant",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
