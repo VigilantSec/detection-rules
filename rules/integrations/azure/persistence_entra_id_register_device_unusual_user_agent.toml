@@ -62,6 +62,9 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
+    "vigilant.alerting.persistence",
+    "vigilant.alerting.passthrough",
+    "vigilant.alerting.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "query"
