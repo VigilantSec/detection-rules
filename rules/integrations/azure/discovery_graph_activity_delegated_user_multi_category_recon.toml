@@ -60,6 +60,9 @@ tags = [
     "Use Case: Threat Detection",
     "Tactic: Discovery",
     "Resources: Investigation Guide",
+    "vigilant.alerting.recon",
+    "vigilant.alerting.passthrough",
+    "vigilant.alerting.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
