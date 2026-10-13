@@ -8,13 +8,17 @@ import unittest
 import kql
 from kql.ast import (
     AndExpr,
+    Boolean,
     Exists,
     Field,
     FieldComparison,
     FieldRange,
+    FreeText,
+    NestedQuery,
     NotExpr,
     NotValue,
     Number,
+    OrExpr,
     String,
     Wildcard,
 )
@@ -94,15 +98,17 @@ class ParserTests(unittest.TestCase):
         query = 'host.name: test-* and not (destination.ip : "127.0.0.53" and destination.ip : "169.254.169.254")'
         dsl_str = str(kql.to_dsl(query))
 
+        # `-` is a Lucene query_string reserved char (prefix NOT), so it is
+        # escaped in the wildcard value, matching Kibana's toQueryStringQuery.
         bad_case = (
-            "{'bool': {'filter': [{'query_string': {'fields': ['host.name'], 'query': 'test-*'}}], "
+            "{'bool': {'filter': [{'query_string': {'fields': ['host.name'], 'query': 'test\\\\-*'}}], "
             "'must_not': [{'match': {'destination.ip': '127.0.0.53'}}, "
             "{'match': {'destination.ip': '169.254.169.254'}}]}}"
         )
         self.assertNotEqual(dsl_str, bad_case, "DSL string matches the bad case, optimization failed.")
 
         good_case = (
-            "{'bool': {'filter': [{'query_string': {'fields': ['host.name'], 'query': 'test-*'}}], "
+            "{'bool': {'filter': [{'query_string': {'fields': ['host.name'], 'query': 'test\\\\-*'}}], "
             "'must_not': [{'bool': {'filter': [{'match': {'destination.ip': '127.0.0.53'}}, "
             "{'match': {'destination.ip': '169.254.169.254'}}]}}]}}"
         )
@@ -135,6 +141,81 @@ class ParserTests(unittest.TestCase):
         # Multiple wildcards with spaces
         self.validate("field: foo* bar* baz", FieldComparison(Field("field"), Wildcard("foo* bar* baz")))
 
+    def test_wildcard_with_spaces_and_escaped_specials(self):
+        """Test wildcard values with spaces that also contain escaped special characters."""
+        # Regression for #6282: Kibana allows escaped specials (\: \( \) \{ ...) inside
+        # unquoted values, e.g. "app_message: *\: No such file*". The WILDCARD_LITERAL token
+        # previously excluded these characters and failed to lex such values.
+        # Escaped colon directly after the leading wildcard (the #6282 example shape). The
+        # escape is resolved (backslash dropped) like any other recognized escape.
+        self.validate(r"field: *\: No such file*", FieldComparison(Field("field"), Wildcard("*: No such file*")))
+        self.validate(
+            r"app_message: *\: No such file", FieldComparison(Field("app_message"), Wildcard("*: No such file"))
+        )
+
+        # Escaped parenthesis / brace mid-value
+        self.validate(r"field: *foo\(bar baz*", FieldComparison(Field("field"), Wildcard("*foo(bar baz*")))
+        self.validate(r"field: foo* bar\:baz", FieldComparison(Field("field"), Wildcard("foo* bar:baz")))
+
+    def test_wildcard_with_spaces_escaped_specials_full_issue_query(self):
+        """Test the exact query reported in #6282 end to end."""
+        # Previously this failed to lex at the escaped colon ("Invalid syntax"). It now
+        # lexes, and ` or ` splits the query the same way Kibana does: the wildcard value
+        # ends at "file", followed by OR and the bare term `directory`, which Kibana
+        # searches against the index's default fields (a FreeText term -- see #6419).
+        query = r"app_message : *\: No such file or directory"
+        kql.lark_parse(query)  # lexes and builds a parse tree without error
+        self.validate(
+            query,
+            OrExpr(
+                [
+                    FieldComparison(Field("app_message"), Wildcard("*: No such file")),
+                    FreeText(String("directory"), is_quoted=False),
+                ]
+            ),
+        )
+
+        # With the trailing bare term tied to a field, the query round-trips fully.
+        self.validate(
+            r"app_message : *\: No such file or app_message : directory",
+            OrExpr(
+                [
+                    FieldComparison(Field("app_message"), Wildcard("*: No such file")),
+                    FieldComparison(Field("app_message"), String("directory")),
+                ]
+            ),
+        )
+
+    def test_wildcard_with_spaces_and_invalid_escape(self):
+        """Test that an escape outside UNQUOTED_CHAR's whitelist is rejected even with spaces."""
+        # `\'` is not a recognized KQL escape; it must fail to lex whether or not the value
+        # contains a space, so the two behave consistently.
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse(r"field: foo\'bar")
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse(r"field: *foo\' bar")
+
+        # A backslash may only appear as part of a recognized escape pair, so an invalid
+        # escape whose second character is otherwise a normal character (e.g. `\q`) is
+        # also rejected rather than lexing as a literal backslash + character.
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse(r"field: foo\qbar*")
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse(r"field: *foo\q bar*")
+
+    def test_wildcard_with_spaces_and_unescaped_angle_brackets(self):
+        """Test that unescaped < and > are rejected in wildcard values, same as UNQUOTED_CHAR."""
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse("field: foo<bar*")
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse("field: *foo bar<baz*")
+        with self.assertRaises(kql.KqlParseError):
+            kql.lark_parse("field: *foo bar>baz*")
+
+        # Escaped, they are accepted and resolve to the bare character.
+        self.validate(r"field: *foo\<bar baz*", FieldComparison(Field("field"), Wildcard("*foo<bar baz*")))
+        self.validate(r"field: *foo\>bar baz*", FieldComparison(Field("field"), Wildcard("*foo>bar baz*")))
+
     def test_wildcard_with_spaces_and_keywords(self):
         """Test wildcard values containing spaces followed by keywords."""
         # Wildcard followed by 'and' keyword
@@ -162,6 +243,139 @@ class ParserTests(unittest.TestCase):
         """Test that quoted wildcards are treated as literal strings, not wildcards."""
         # Quoted wildcard should be a String, not a Wildcard
         self.validate('field: "*text*"', FieldComparison(Field("field"), String("*text*")))
+
+    def test_escaped_colon_with_leading_slash_wildcard(self):
+        """Test that an escaped colon in a wildcard with a leading slash is unescaped in the value."""
+        self.validate(
+            r"process.args:/lockscreenurl\:http*",
+            FieldComparison(Field("process.args"), Wildcard("/lockscreenurl:http*")),
+        )
+
+    def test_escaped_wildcard_is_literal(self):
+        """Test that an escaped `\\*` is treated as a literal asterisk, not a wildcard."""
+        # Regression test for the literal-`*` -> match-all-wildcard bug: since wildcard
+        # values are unescaped before DSL conversion, an escaped `*` must be parsed as a
+        # String (literal) rather than a Wildcard, otherwise `field:\*` would incorrectly
+        # compile to a match-all `query_string` query.
+
+        # An unquoted literal whose only `*` is escaped is a String, not a Wildcard.
+        self.validate(r"field:\*", FieldComparison(Field("field"), String("*")))
+        self.validate(r"field:foo\*bar", FieldComparison(Field("field"), String("foo*bar")))
+
+        # And the DSL must treat it as a literal `match`, never a match-all query_string.
+        self.assertEqual(
+            kql.to_dsl(r"field:\*"),
+            {"bool": {"filter": [{"match": {"field": "*"}}]}},
+        )
+
+        # A bare (unescaped) `*` anywhere makes the whole value a Wildcard. NOTE: escaped
+        # `*` mixed with an unescaped one collapse together once unescaped, so the literal
+        # asterisk is lost in this case -- a known limitation of unescaping wildcard values.
+        self.validate(r"field:foo\*bar*", FieldComparison(Field("field"), Wildcard("foo*bar*")))
+
+    def test_free_text_value(self):
+        """Test values not tied to any field (issue #6419)."""
+        # Kibana searches a bare value against the index's default fields, so it is valid
+        # KQL. The exact rule query from #6419:
+        self.validate(
+            'process.name : agent12 and "Accepted password for root"',
+            AndExpr(
+                [
+                    FieldComparison(Field("process.name"), String("agent12")),
+                    FreeText(String("Accepted password for root"), is_quoted=True),
+                ]
+            ),
+        )
+
+        # Bare quoted, unquoted, numeric, and wildcard values. Quoting is tracked because
+        # Kibana searches a quoted value as a phrase and an unquoted one as best_fields.
+        self.validate('"Accepted password for root"', FreeText(String("Accepted password for root"), is_quoted=True))
+        self.validate("agent12", FreeText(String("agent12"), is_quoted=False))
+        self.validate("1", FreeText(Number(1), is_quoted=False))
+        self.validate("*password*", FreeText(Wildcard("*password*")))
+
+        # A bare `*` is a match-all, not an `Exists` — there is no field to check for
+        self.validate("*", FreeText(Wildcard("*")))
+
+        # Wildcards in quotes, and escaped wildcards, stay literal — same as field values
+        self.validate('"*password*"', FreeText(String("*password*"), is_quoted=True))
+        self.validate(r"\*", FreeText(String("*"), is_quoted=False))
+
+        # Negation and composition with field expressions
+        self.validate('not "foo bar"', NotExpr(FreeText(String("foo bar"), is_quoted=True)))
+        self.validate(
+            '"a" or process.name : b',
+            OrExpr([FreeText(String("a"), is_quoted=True), FieldComparison(Field("process.name"), String("b"))]),
+        )
+
+    def test_nested_query(self):
+        """Nested KQL (`field:{ ... }`) parses to a NestedQuery with relative inner fields."""
+        schema = {
+            "top": "nested",
+            "top.a": "keyword",
+            "top.b": "long",
+            "top.middle": "nested",
+            "top.middle.bool": "boolean",
+        }
+
+        # inner field references are stored relative to the nested path
+        self.validate(
+            "top:{ a:hello }",
+            NestedQuery(Field("top"), FieldComparison(Field("a"), String("hello"))),
+            schema=schema,
+        )
+
+        # inner values are still validated/converted against the resolved (absolute) type
+        self.validate(
+            'top:{ b:"1" }',
+            NestedQuery(Field("top"), FieldComparison(Field("b"), Number(1))),
+            schema=schema,
+        )
+
+        # multiple inner conditions build a compound expression scoped to the same object
+        self.validate(
+            "top:{ a:hello and b:1 }",
+            NestedQuery(
+                Field("top"),
+                AndExpr([FieldComparison(Field("a"), String("hello")), FieldComparison(Field("b"), Number(1))]),
+            ),
+            schema=schema,
+        )
+
+        # nested-within-nested keeps each level's fields relative to its own path
+        self.validate(
+            "top:{ middle:{ bool: true } }",
+            NestedQuery(Field("top"), NestedQuery(Field("middle"), FieldComparison(Field("bool"), Boolean(True)))),
+            schema=schema,
+        )
+
+        # nested syntax works without a schema (no field validation)
+        self.assertIsInstance(kql.parse("top:{ a:hello }", optimize=False), NestedQuery)
+
+    def test_nested_query_schema_errors(self):
+        """Nested syntax requires a `nested` field, and inner fields are schema-checked."""
+        schema = {"top": "nested", "top.a": "keyword", "leaf": "keyword"}
+
+        # nested syntax on a non-nested field is rejected
+        with self.assertRaisesRegex(kql.KqlParseError, "Expected a nested field"):
+            kql.parse("leaf:{ a:1 }", schema=schema)
+
+        # unknown inner field is rejected (resolved against the nested path)
+        with self.assertRaisesRegex(kql.KqlParseError, "Unknown field"):
+            kql.parse("top:{ bogus:1 }", schema=schema)
+
+    def test_get_field_names_resolves_nested_paths(self):
+        """required_fields-style extraction must use absolute paths inside nested queries."""
+        self.assertEqual(
+            kql.get_field_names("email.attachments:{ file.extension: exe }"),
+            ["email.attachments", "email.attachments.file.extension"],
+        )
+        self.assertEqual(
+            kql.get_field_names("a:1 and top:{ b:2 and middle:{ c:true } }"),
+            ["a", "top", "top.b", "top.middle", "top.middle.c"],
+        )
+        # non-nested queries are unchanged
+        self.assertEqual(kql.get_field_names("host.name: foo and user.id: 1"), ["host.name", "user.id"])
 
     def test_triple_not_optimization(self):
         """Test that triple NOT optimizes correctly: not(not(not(x))) = not(x)."""

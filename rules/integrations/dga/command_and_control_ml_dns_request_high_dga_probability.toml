@@ -2,7 +2,7 @@
 creation_date = "2023/09/14"
 integration = ["dga", "endpoint", "network_traffic"]
 maturity = "production"
-updated_date = "2026/03/24"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -53,8 +53,12 @@ tags = [
     "Rule Type: Machine Learning",
     "Tactic: Command and Control",
     "Resources: Investigation Guide",
+    "Noise: Medium",
+    "Performance: Normal",
+    "Rule Type: Custom Query (KQL)",
+    "Data Source: Network Packet Capture",
     "vigilant.disabled",
-    "vigilant.noisy"
+    "vigilant.noisy",
 ]
 timestamp_override = "event.ingested"
 type = "query"

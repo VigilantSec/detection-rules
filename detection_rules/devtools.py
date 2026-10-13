@@ -25,24 +25,24 @@ import click
 import pytoml  # type: ignore[reportMissingTypeStubs]
 import requests.exceptions
 import yaml
-from elasticsearch import BadRequestError, Elasticsearch
-from elasticsearch import ConnectionError as ESConnectionError
+from elasticsearch import Elasticsearch
 from eql.table import Table  # type: ignore[reportMissingTypeStubs]
 from eql.utils import load_dump  # type: ignore[reportMissingTypeStubs, reportUnknownVariableType]
 from kibana.connector import Kibana  # type: ignore[reportMissingTypeStubs]
 from kibana.resources import Signal  # type: ignore[reportMissingTypeStubs]
 from semver import Version
 
-from . import attack, rule_loader, utils
+from . import atlas, attack, rule_loader, utils
 from .beats import download_beats_schema, download_latest_beats_schema, refresh_main_schema
-from .cli_utils import single_collection
-from .config import parse_rules_config
+from .cli_utils import multi_collection, single_collection
+from .config import (
+    DEFAULT_THREAT_MAPPING_FRAMEWORK,
+    DEFAULT_THREAT_MAPPING_VERSION,
+    parse_rules_config,
+)
 from .docs import REPO_DOCS_DIR, IntegrationSecurityDocs, IntegrationSecurityDocsMDX
 from .ecs import download_endpoint_schemas, download_schemas
 from .endgame import EndgameSchemaManager
-from .esql_errors import (
-    ESQL_EXCEPTION_TYPES,
-)
 from .eswrap import CollectEvents, add_range_to_dsl
 from .ghwrap import GithubClient, update_gist
 from .integrations import (
@@ -57,10 +57,9 @@ from .main import root
 from .misc import (
     PYTHON_LICENSE,
     add_client,
-    get_default_elasticsearch_client,
-    get_default_kibana_client,
     raise_client_error,
 )
+from .navigator import select_navigator_gist_files
 from .packaging import CURRENT_RELEASE_PATH, PACKAGE_FILE, RELEASE_DIR, Package
 from .rule import (
     AnyRuleData,
@@ -71,9 +70,9 @@ from .rule import (
     ThreatMapping,
     TOMLRule,
     TOMLRuleContents,
+    VersionedThreatMapping,
 )
 from .rule_loader import RuleCollection, production_filter
-from .rule_validators import ESQLValidator
 from .schemas import definitions, get_stack_versions
 from .utils import check_version_lock_double_bumps, dict_hash, get_etc_path, get_path
 from .version_lock import VersionLockFile, loaded_version_lock
@@ -123,7 +122,7 @@ def dev_group() -> None:
 @click.option("--generate-docs", is_flag=True, default=False, help="Generate markdown documentation")
 @click.option("--update-message", type=str, help="Update message for new package")
 @click.pass_context
-def build_release(  # noqa: PLR0913
+def build_release(  # noqa: PLR0913, PLR0917
     ctx: click.Context,
     config_file: Path,
     update_version_lock: bool,
@@ -246,7 +245,7 @@ def get_release_diff(
 @click.option("--remote", "-r", default="origin", help='Override the remote from "origin"')
 @click.option("--update-message", default="Rule Updates.", type=str, help="Update message for new package")
 @click.pass_context
-def build_integration_docs(  # noqa: PLR0913
+def build_integration_docs(  # noqa: PLR0913, PLR0917
     ctx: click.Context,
     registry_version: str,
     pre: str,
@@ -374,7 +373,7 @@ def bump_versions(
 @click.option("--comment", is_flag=True, help="If set, enables commenting on the PR (requires --pr-number)")
 @click.option("--save-double-bumps", type=Path, help="Optional path to save the double bumps to a file")
 @click.pass_context
-def check_version_lock(  # noqa: PLR0913
+def check_version_lock(  # noqa: PLR0913, PLR0917
     ctx: click.Context,
     pr_number: int,
     local_file: str,
@@ -647,7 +646,7 @@ def kibana_diff(rule_id: list[str], repo: str, branch: str, threads: int) -> dic
 @click.option("--draft", is_flag=True, help="Open the PR as a draft")
 @click.option("--remote", help="Override the remote from 'origin'", default="origin")
 @click.pass_context
-def integrations_pr(  # noqa: PLR0913, PLR0915
+def integrations_pr(  # noqa: PLR0913, PLR0915, PLR0917
     ctx: click.Context,
     local_repo: Path,
     token: str,
@@ -832,12 +831,12 @@ def integrations_pr(  # noqa: PLR0913, PLR0915
 @click.pass_context
 def license_check(ctx: click.Context, ignore_directory: list[str]) -> None:
     """Check that all code files contain a valid license."""
-    ignore_directory += ("env",)
+    ignore_directory += ("env", ".venv", "venv", "exports")
     failed = False
 
     for path in utils.ROOT_DIR.rglob("*.py"):
         relative_path = path.relative_to(utils.ROOT_DIR)
-        if relative_path.parts[0] in ignore_directory:
+        if relative_path.parts[0] in ignore_directory or "build" in relative_path.parts:
             continue
 
         with path.open(encoding="utf-8") as f:
@@ -914,7 +913,7 @@ def package_stats(ctx: click.Context, token: str | None, threads: int) -> None:
 @click.option("--token", "-t", help="GitHub token to search API authenticated (may exceed threshold without auth)")
 @click.option("--threads", default=50, help="Number of threads to download rules from GitHub")
 @click.pass_context
-def search_rule_prs(  # noqa: PLR0913
+def search_rule_prs(  # noqa: PLR0913, PLR0917
     ctx: click.Context,
     no_loop: bool,
     query: str | None,
@@ -1024,7 +1023,7 @@ def deprecate_rule(ctx: click.Context, rule_file: Path, deprecation_folder: Path
     "--directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True, path_type=Path),
     default=CURRENT_RELEASE_PATH.joinpath("extras", "navigator_layers"),
-    help="Directory containing only navigator files.",
+    help="Directory containing navigator layer JSON files.",
 )
 @click.option(
     "--token",
@@ -1051,17 +1050,17 @@ def update_navigator_gists(
         prefix, _, suffix = raw_link.rsplit("/", 2)
         return f"{prefix}/{suffix}"
 
-    file_map = {f: f.read_text() for f in directory.glob("*.json")}
+    file_map = select_navigator_gist_files(directory)
     try:
         response = update_gist(
             token, file_map, description="ATT&CK Navigator layer files.", gist_id=gist_id, pre_purge=True
         )
     except requests.exceptions.HTTPError as exc:
-        if exc.response.status_code == requests.status_codes.codes.not_found:
+        if exc.response is not None and exc.response.status_code == requests.status_codes.codes.not_found:
             raise raise_client_error(
                 "Gist not found: verify the gist_id exists and the token has access to it", exc=exc
             ) from exc
-        if exc.response.status_code == requests.status_codes.codes.unauthorized:
+        if exc.response is not None and exc.response.status_code == requests.status_codes.codes.unauthorized:
             text = json.loads(exc.response.text).get(
                 "message", "verify the token is valid and has the necessary permissions"
             )
@@ -1070,34 +1069,20 @@ def update_navigator_gists(
                 error_message,
                 exc=exc,
             ) from exc
-        raise
+        raise raise_client_error(f"Gist update failed: {exc}", exc=exc) from exc
 
     response_data = response.json()
     raw_urls = {name: raw_permalink(data["raw_url"]) for name, data in response_data["files"].items()}
 
     base_url = "https://mitre-attack.github.io/attack-navigator/#layerURL={}&leave_site_dialog=false&tabs=false"
-
-    # pull out full and platform coverage to print on top of markdown table
-    all_url = base_url.format(urllib.parse.quote_plus(raw_urls.pop("Elastic-detection-rules-all.json")))
-    platforms_url = base_url.format(urllib.parse.quote_plus(raw_urls.pop("Elastic-detection-rules-platforms.json")))
+    all_url = base_url.format(urllib.parse.quote_plus(raw_urls["Elastic-detection-rules-all.json"]))
+    platforms_url = base_url.format(urllib.parse.quote_plus(raw_urls["Elastic-detection-rules-platforms.json"]))
 
     generated_urls = [all_url, platforms_url]
-    markdown_links: list[str] = []
-    for name, gist_url in raw_urls.items():
-        query = urllib.parse.quote_plus(gist_url)
-        url = f"https://mitre-attack.github.io/attack-navigator/#layerURL={query}&leave_site_dialog=false&tabs=false"
-        generated_urls.append(url)
-        link_name = name.split(".")[0]
-        markdown_links.append(f"|[{link_name}]({url})|")
-
     markdown = [
         f"**Full coverage**: {NAVIGATOR_BADGE}",
         "\n",
         f"**Coverage by platform**: [navigator]({platforms_url})",
-        "\n",
-        "| other navigator links by rule attributes |",
-        "|------------------------------------------|",
-        *markdown_links,
     ]
 
     if print_markdown:
@@ -1108,11 +1093,10 @@ def update_navigator_gists(
         header_lines = textwrap.dedent("""# Rule coverage
 
 ATT&CK navigator layer files are generated when a package is built with `make release` or
-`python -m detection-rules`.This also means they can be downloaded from all successful builds.
+`python -m detection-rules`. This also means they can be downloaded from all successful builds.
 
-These files can be used to pass to a custom navigator session. For convenience, the links are
-generated below. You can also include multiple across tabs in a single session, though it is not
-advisable to upload _all_ of them as it will likely overload your browsers resources.
+Published gist links cover the full rule set and coverage by platform. Additional tag and index
+layer files are not uploaded to the gist because they exceed GitHub gist size limits.
 
 ## Current rule coverage
 
@@ -1328,7 +1312,7 @@ def test_group() -> None:
 )
 @click.option("--verbose", "-v", is_flag=True, default=True)
 @add_client(["elasticsearch"])
-def event_search(  # noqa: PLR0913
+def event_search(  # noqa: PLR0913, PLR0917
     query: str,
     index: list[str],
     language: str | None,
@@ -1373,7 +1357,7 @@ def event_search(  # noqa: PLR0913
 @click.option("--verbose", "-v", is_flag=True)
 @click.pass_context
 @add_client(["elasticsearch"])
-def rule_event_search(  # noqa: PLR0913
+def rule_event_search(  # noqa: PLR0913, PLR0917
     ctx: click.Context,
     rule: Any,
     date_range: tuple[str, str],
@@ -1414,72 +1398,6 @@ def rule_event_search(  # noqa: PLR0913
         raise_client_error("Rule is not a query rule!")
 
 
-@test_group.command("esql-remote-validation")
-@click.option(
-    "--verbosity",
-    type=click.IntRange(0, 1),
-    default=0,
-    help="Set verbosity level: 0 for minimal output, 1 for detailed output.",
-)
-def esql_remote_validation(
-    verbosity: int,
-) -> None:
-    """Search using a rule file against an Elasticsearch instance."""
-
-    rule_collection: RuleCollection = RuleCollection.default().filter(production_filter)
-    esql_rules = [r for r in rule_collection if r.contents.data.type == "esql"]
-
-    click.echo(f"ESQL rules loaded: {len(esql_rules)}")
-
-    if not esql_rules:
-        return
-    # TODO(eric-forte-elastic): @add_client https://github.com/elastic/detection-rules/issues/5156  # noqa: FIX002
-    with get_default_kibana_client() as kibana_client, get_default_elasticsearch_client() as elastic_client:
-        if not kibana_client or not elastic_client:
-            raise_client_error("Skipping remote validation due to missing client")
-
-        failed_count = 0
-        fail_list: list[str] = []
-        max_retries = 3
-        for r in esql_rules:
-            retry_count = 0
-            while retry_count < max_retries:
-                try:
-                    validator = ESQLValidator(r.contents.data.query)  # type: ignore[reportIncompatibleMethodOverride]
-                    _ = validator.remote_validate_rule_contents(kibana_client, elastic_client, r.contents, verbosity)
-                    break
-                except (ValueError, BadRequestError, *ESQL_EXCEPTION_TYPES) as e:  # type: ignore[reportUnknownMemberType]
-                    e_type = type(e)  # type: ignore[reportUnknownMemberType]
-                    if isinstance(e, ESQL_EXCEPTION_TYPES):
-                        click.echo(click.style(f"{r.contents.data.rule_id} ", fg="red", bold=True), nl=False)
-                        _ = e.show()  # type: ignore[reportUnknownMemberType]
-                    else:
-                        click.echo(f"FAILURE: {e_type}: {e}")  # type: ignore[reportUnknownMemberType]
-                    fail_list.append(f"{r.contents.data.rule_id}  FAILURE: {e_type}: {e}")  # type: ignore[reportUnknownMemberType]
-                    failed_count += 1
-                    break
-                except ESConnectionError as e:
-                    retry_count += 1
-                    click.echo(f"Connection error: {e}. Retrying {retry_count}/{max_retries}...")
-                    time.sleep(30)
-                    if retry_count == max_retries:
-                        click.echo(f"FAILURE: {e} after {max_retries} retries")
-                        fail_list.append(f"FAILURE: {e} after {max_retries} retries")
-                        failed_count += 1
-
-        click.echo(f"Total rules: {len(esql_rules)}")
-        click.echo(f"Failed rules: {failed_count}")
-
-        _ = Path("failed_rules.log").write_text("\n".join(fail_list), encoding="utf-8")
-        click.echo("Failed rules written to failed_rules.log")
-        if failed_count > 0:
-            click.echo("Failed rule IDs:")
-            uuids = {line.split()[0] for line in fail_list}
-            click.echo("\n".join(uuids))
-            ctx = click.get_current_context()
-            ctx.exit(1)
-
-
 @test_group.command("rule-survey")
 @click.argument("query", required=False)
 @click.option("--date-range", "-d", type=(str, str), default=("now-7d", "now"), help="Date range to scope search")
@@ -1493,7 +1411,7 @@ def esql_remote_validation(
 @click.option("--hide-errors", "-e", is_flag=True, help="Exclude rules with errors from printing")
 @click.pass_context
 @add_client(["elasticsearch", "kibana"], add_to_ctx=True)
-def rule_survey(  # noqa: PLR0913
+def rule_survey(  # noqa: PLR0913, PLR0917
     ctx: click.Context,
     query: str,
     date_range: tuple[str, str],
@@ -1812,6 +1730,330 @@ def update_attack_in_rules() -> list[TOMLRule]:
     else:
         click.echo("No rule changes needed")
     return new_rules
+
+
+def _remap_threat_entries(  # noqa: PLR0913, PLR0917
+    entries: list[ThreatMapping],
+    vmap: "attack.AttackVersionMap",
+    framework: str,
+    dropped: list[str],
+    target_lookups: "attack.AttackLookups | None" = None,
+    moved: "list[str] | None" = None,
+) -> list[dict[str, Any]]:
+    """Build target-version threat entries; delegates to attack.convert_threat_to_version."""
+    threat_dicts = [entry.to_dict() for entry in entries]
+    return attack.convert_threat_to_version(
+        threat_dicts,
+        source_version=vmap.source_version,
+        target_version=vmap.target_version,
+        framework=framework,
+        vmap=vmap,
+        target_lookups=target_lookups,
+        dropped=dropped,
+        moved=moved,
+    )
+
+
+def _toml_str(value: str) -> str:
+    """Serialize a string as a TOML basic string, escaping backslashes and double quotes."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _format_threat_mappings_toml(new_blocks: list[VersionedThreatMapping]) -> str:
+    """Serialize versioned threat mapping blocks to TOML text."""
+    lines: list[str] = []
+    for block in new_blocks:
+        lines.append("[[rule.threat_mappings]]")
+        lines.append(f"framework = {_toml_str(block.framework)}")
+        lines.append(f"version = {_toml_str(block.version)}")
+        for entry in block.threat:
+            lines.append("[[rule.threat_mappings.threat]]")
+            lines.append(f"framework = {_toml_str(entry.framework)}")
+            for tech in entry.technique or []:
+                lines.append("[[rule.threat_mappings.threat.technique]]")
+                lines.append(f"id = {_toml_str(tech.id)}")
+                lines.append(f"name = {_toml_str(tech.name)}")
+                lines.append(f"reference = {_toml_str(tech.reference)}")
+                for sub in tech.subtechnique or []:
+                    lines.append("[[rule.threat_mappings.threat.technique.subtechnique]]")
+                    lines.append(f"id = {_toml_str(sub.id)}")
+                    lines.append(f"name = {_toml_str(sub.name)}")
+                    lines.append(f"reference = {_toml_str(sub.reference)}")
+            lines.append("")
+            lines.append("[rule.threat_mappings.threat.tactic]")
+            lines.append(f"id = {_toml_str(entry.tactic.id)}")
+            lines.append(f"name = {_toml_str(entry.tactic.name)}")
+            lines.append(f"reference = {_toml_str(entry.tactic.reference)}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _insert_tags(text: str, added_tags: list[str]) -> tuple[str, str | None]:
+    """Insert tags into the `tags` array preserving its single- or multi-line form; returns (text, warning)."""
+    lines = text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        single = re.match(r"^(tags\s*=\s*\[)(.*)(\]\s*)$", line)
+        if single:
+            existing = single.group(2).rstrip().rstrip(",")
+            additions = ", ".join(_toml_str(t) for t in added_tags)
+            inner = f"{existing}, {additions}" if existing.strip() else additions
+            lines[i] = f"{single.group(1)}{inner}{single.group(3)}"
+            return "".join(lines), None
+        if re.match(r"^tags\s*=\s*\[\s*$", line):
+            end = next((j for j in range(i + 1, len(lines)) if lines[j].strip() == "]"), None)
+            if end is None:
+                return text, "closing ] of the tags array not found; tags not added"
+            # Ensure the last existing element has a trailing comma before inserting
+            prev_stripped = lines[end - 1].rstrip()
+            if prev_stripped and not prev_stripped.endswith((",", "[")):
+                lines[end - 1] = prev_stripped + ",\n"
+            new_tag_lines = [f"    {_toml_str(t)},\n" for t in added_tags]
+            lines = lines[:end] + new_tag_lines + lines[end:]
+            return "".join(lines), None
+    return text, "tags array not found; tags not added"
+
+
+def _patch_toml_minimal(
+    path: Path,
+    today: str,
+    added_tags: list[str],
+    new_blocks: list[VersionedThreatMapping],
+) -> tuple[bool, list[str]]:
+    """Apply targeted TOML edits (updated_date, tags, threat_mappings); returns (applied, warnings)."""
+    text = path.read_text(encoding="utf-8")
+    warnings: list[str] = []
+
+    # The threat_mappings section is replaced by truncate-and-append, so refuse to touch a file
+    # where any other section follows it — that content would otherwise be lost.
+    tm_match = re.search(r"^\[\[rule\.threat_mappings\]\]", text, flags=re.MULTILINE)
+    if tm_match:
+        for sec in re.finditer(r"^\[+\s*([A-Za-z0-9_.\-]+)\s*\]", text[tm_match.start() :], flags=re.MULTILINE):
+            if not sec.group(1).startswith("rule.threat_mappings"):
+                return False, [f"section [{sec.group(1)}] follows [[rule.threat_mappings]]; file left unmodified"]
+
+    # Update the metadata updated_date in-place (first occurrence only)
+    text, n_subs = re.subn(
+        r"^(updated_date\s*=\s*\")[^\"]*\"",
+        rf'\g<1>{today}"',
+        text,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if not n_subs:
+        warnings.append("updated_date not found; date not updated")
+
+    # Insert new tags into the tags array
+    if added_tags:
+        text, tags_warning = _insert_tags(text, added_tags)
+        if tags_warning:
+            warnings.append(tags_warning)
+
+    # Remove any existing [[rule.threat_mappings]] sections (re-search: earlier edits shift offsets)
+    m = re.search(r"^\[\[rule\.threat_mappings\]\]", text, flags=re.MULTILINE)
+    if m:
+        text = text[: m.start()].rstrip("\n") + "\n"
+
+    # Append new threat_mappings TOML
+    text = text.rstrip("\n") + "\n\n" + _format_threat_mappings_toml(new_blocks)
+
+    _ = path.write_text(text, encoding="utf-8")
+    return True, warnings
+
+
+def _get_source_threat(rule: TOMLRule, framework: str, source_version: str) -> list[ThreatMapping] | None:
+    """Get the source threat mapping for the given framework/version."""
+    if framework == DEFAULT_THREAT_MAPPING_FRAMEWORK and str(source_version) == str(DEFAULT_THREAT_MAPPING_VERSION):
+        return rule.contents.data.threat
+    for block in rule.contents.data.threat_mappings or []:
+        if block.framework == framework and str(block.version) == str(source_version):
+            return block.threat
+    return None
+
+
+@attack_group.command("convert-threat-mappings")
+@click.option("--target-version", "-t", required=True, help="Target framework version to generate (e.g. 19)")
+@click.option(
+    "--source-version",
+    "-s",
+    default=DEFAULT_THREAT_MAPPING_VERSION,
+    show_default=True,
+    help="Source version to convert from (the version stored in the rule `threat` field by default)",
+)
+@click.option(
+    "--framework",
+    default=DEFAULT_THREAT_MAPPING_FRAMEWORK,
+    show_default=True,
+    help="Threat framework to convert",
+)
+@click.option(
+    "--config",
+    "config_paths",
+    multiple=True,
+    type=Path,
+    help="Explicit mapping config file(s) or directory(ies). Defaults to the configured `attack_version_maps_dir`.",
+)
+@click.option("--dry-run", is_flag=True, help="Report what would change without writing any files")
+@click.option(
+    "--overwrite/--no-overwrite",
+    default=True,
+    show_default=True,
+    help="Replace an existing target-version block on a rule (otherwise the rule is skipped)",
+)
+@multi_collection
+def convert_threat_mappings(  # noqa: PLR0912, PLR0913, PLR0915, PLR0917
+    rules: RuleCollection,
+    target_version: str,
+    source_version: str,
+    framework: str,
+    config_paths: tuple[Path, ...],
+    dry_run: bool,
+    overwrite: bool,
+) -> list[TOMLRule]:
+    """Generate a target-version threat mapping from a rule's source mapping (accuracy-first)."""
+    if framework == DEFAULT_THREAT_MAPPING_FRAMEWORK and str(target_version) == str(DEFAULT_THREAT_MAPPING_VERSION):
+        raise click.BadParameter(
+            f"--target-version {target_version} is the baseline stored in the `threat` field; "
+            "generating a versioned block for it would duplicate `threat`."
+        )
+
+    try:
+        vmap = attack.get_attack_version_map(framework, source_version, target_version, list(config_paths) or None)
+    except (FileNotFoundError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    target_lookups: attack.AttackLookups | None = None
+    if vmap.auto_derive_missing:
+        try:
+            target_lookups = attack.build_attack_lookups_for_version(target_version)
+        except FileNotFoundError as exc:
+            raise click.ClickException(
+                f"auto_derive_missing=true requires ATT&CK STIX data for version {target_version!r}: {exc}"
+            ) from exc
+
+    click.echo(
+        f"Converting {framework} {source_version} -> {target_version} using config: {vmap.path}\n"
+        f"({len(rules)} rules in scope; dry-run={dry_run}; auto_derive_missing={vmap.auto_derive_missing})\n"
+    )
+
+    today = time.strftime("%Y/%m/%d")
+    updated_rules: list[TOMLRule] = []
+    skipped_no_source = 0
+    skipped_existing = 0
+    skipped_empty = 0
+    skipped_unpatchable = 0
+
+    for rule in rules.rules:
+        source_threat = _get_source_threat(rule, framework, source_version)
+        if not source_threat:
+            skipped_no_source += 1
+            continue
+
+        existing_blocks = list(rule.contents.data.threat_mappings or [])
+        has_target = any(b.framework == framework and str(b.version) == str(target_version) for b in existing_blocks)
+        if has_target and not overwrite:
+            skipped_existing += 1
+            continue
+
+        dropped: list[str] = []
+        moved: list[str] = []
+        threat_dicts = _remap_threat_entries(source_threat, vmap, framework, dropped, target_lookups, moved)
+
+        if not threat_dicts:
+            skipped_empty += 1
+            click.secho(
+                f"  [skip] {rule.name}: no confident {target_version} mapping (dropped: {', '.join(dropped)})",
+                fg="yellow",
+            )
+            continue
+
+        block = VersionedThreatMapping.from_dict(
+            {"framework": framework, "version": str(target_version), "threat": threat_dicts}
+        )
+        remaining = [
+            b for b in existing_blocks if not (b.framework == framework and str(b.version) == str(target_version))
+        ]
+        new_blocks = sorted([*remaining, block], key=lambda b: (b.framework, b.version))
+
+        # Collect new tactic tags from the generated block and merge with existing tags.
+        new_tactic_names: list[str] = sorted({str(e["tactic"]["name"]) for e in threat_dicts if e.get("tactic")})
+        existing_tags = list(rule.contents.data.tags or [])
+        added_tags = [f"Tactic: {n}" for n in new_tactic_names if f"Tactic: {n}" not in existing_tags]
+
+        click.echo(f"  [ok]   {rule.name}: generated {target_version} mapping ({len(threat_dicts)} tactic(s))")
+        if moved:
+            click.secho(f"         migrated: {', '.join(moved)}", fg="cyan")
+        if dropped:
+            click.secho(f"         dropped (not in config): {', '.join(dropped)}", fg="yellow")
+        if added_tags:
+            click.secho(f"         tags added: {', '.join(added_tags)}", fg="green")
+
+        if not dry_run and rule.path:
+            applied, patch_warnings = _patch_toml_minimal(rule.path, today, added_tags, new_blocks)
+            for warning in patch_warnings:
+                click.secho(f"         WARNING: {warning}", fg="red")
+            if not applied:
+                skipped_unpatchable += 1
+                continue
+        updated_rules.append(rule)
+
+    click.echo(
+        f"\nFinished - {len(updated_rules)} rule(s) "
+        f"{'would be ' if dry_run else ''}updated; "
+        f"{skipped_no_source} without a {source_version} source mapping, "
+        f"{skipped_existing} with an existing {target_version} block (use --overwrite), "
+        f"{skipped_empty} with no confident mapping."
+        + (f", {skipped_unpatchable} left unmodified (see warnings)" if skipped_unpatchable else "")
+    )
+    return updated_rules
+
+
+@attack_group.command("scaffold-version-map")
+@click.option("--target-version", "-t", required=True, help="Target framework version (e.g. 19)")
+@click.option(
+    "--source-version",
+    "-s",
+    default=DEFAULT_THREAT_MAPPING_VERSION,
+    show_default=True,
+    help="Source version (the baseline stored in the rule `threat` field)",
+)
+@click.option("--framework", default=DEFAULT_THREAT_MAPPING_FRAMEWORK, show_default=True, help="Threat framework")
+@click.option("--output", "-o", type=Path, required=True, help="Path to write the mapping config YAML to")
+def scaffold_version_map(target_version: str, source_version: str, framework: str, output: Path) -> Path:
+    """Generate an identity mapping-config skeleton from the loaded ATT&CK data for human curation."""
+    skeleton = attack.build_identity_version_map(framework, source_version, target_version)
+    header_lines = [
+        f"# Auto-generated identity mapping skeleton ({framework} {source_version} to {target_version}).",
+        "# REVIEW REQUIRED: every source id maps to itself, with the target-version name/reference",
+        "# where the id still exists in the target ATT&CK data (source name otherwise).",
+        "# Curate against the target version's real changes before relying on this config:",
+        "#   renamed       -> change the entry 'name'",
+        "#   deprecated    -> map the entry to a null value, which drops it during conversion",
+        "#   split/merged  -> point the source id at the chosen target id/name/reference",
+        "# Entries absent from this file are dropped during conversion (accuracy-first).",
+        "",
+    ]
+    header = "\n".join(header_lines)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _ = output.write_text(header + yaml.safe_dump(skeleton, sort_keys=False, default_flow_style=False))
+    click.echo(
+        f"Wrote {framework} {source_version}->{target_version} skeleton to {output} "
+        f"({len(skeleton['tactics'])} tactics, {len(skeleton['techniques'])} techniques, "
+        f"{len(skeleton['subtechniques'])} subtechniques)."
+    )
+    return output
+
+
+@dev_group.group("atlas")
+def atlas_group() -> None:
+    """Commands for managing MITRE ATLAS data and mappings."""
+
+
+@atlas_group.command("refresh-data")
+def refresh_atlas_data() -> dict[str, Any] | None:
+    """Refresh the versioned ATLAS data file (atlas-v*.json.gz), same pattern as ATT&CK."""
+    data, _ = atlas.refresh_atlas_data()
+    return data
 
 
 @dev_group.group("transforms")

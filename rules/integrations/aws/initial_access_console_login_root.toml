@@ -2,7 +2,7 @@
 creation_date = "2020/06/11"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -104,10 +104,15 @@ tags = [
     "Resources: Investigation Guide",
     "Tactic: Initial Access",
     "Tactic: Privilege Escalation",
+    "Noise: Low",
+    "Performance: Normal",
+    "Rule Type: Custom Query (KQL)",
+    "Platform: AWS",
+    "Data Source: AWS CloudTrail",
+    "DISABLED.NOTE - IN FAVOR OF [SIGMA] AWS Root Credentials (8ad1600d-e9dc-4251-b0ee-a65268f29add)",
     "vigilant.alerting.initial_access",
     "vigilant.alerting.passthrough",
     "vigilant.disabled",
-    "DISABLED.NOTE - IN FAVOR OF [SIGMA] AWS Root Credentials (8ad1600d-e9dc-4251-b0ee-a65268f29add)"
 ]
 timestamp_override = "event.ingested"
 type = "query"

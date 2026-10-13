@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -28,14 +28,16 @@ from marshmallow import ValidationError, pre_load, validates_schema
 from semver import Version
 
 from . import beats, ecs, endgame, utils
-from .config import load_current_package_version, parse_rules_config
-from .esql import get_esql_query_event_dataset_integrations
-from .esql_errors import EsqlSemanticError
+from .config import CUSTOM_RULES_DIR, load_current_package_version, parse_rules_config
+from .esql import get_esql_query_event_dataset_integrations, normalize_dataset_package
+from .esql_errors import EsqlSemanticError, public_esql_error
 from .integrations import (
-    find_least_compatible_version,
+    UNKNOWN_PACKAGE_INTEGRATION,
+    IntegrationVersionNotFoundError,
+    find_latest_integration_patch_for_minor,
     get_integration_schema_fields,
     load_integrations_manifests,
-    load_integrations_schemas,
+    resolve_related_integration_version,
 )
 from .mixins import MarshmallowDataclassMixin, StackCompatMixin
 from .rule_formatter import nested_normalize, toml_write
@@ -48,12 +50,15 @@ from .schemas import (
     strip_non_public_fields,
 )
 from .schemas.stack_compat import get_restricted_fields
-from .utils import PatchedTemplate, cached, convert_time_span, get_nested_value, set_nested_value
+from .stack_emit import (
+    EmitContext,
+    apply_emit_transforms,
+    emit_epoch_key,
+    parse_stack,
+    transforms_for_stack,
+)
+from .utils import PatchedTemplate, cached_method, convert_time_span, get_nested_value, set_nested_value
 from .version_lock import VersionLock, loaded_version_lock
-
-if typing.TYPE_CHECKING:
-    from .remote_validation import RemoteValidator
-
 
 MIN_FLEET_PACKAGE_VERSION = "7.13.0"
 TIME_NOW = time.strftime("%Y/%m/%d")
@@ -289,6 +294,27 @@ class FlatThreatMapping(MarshmallowDataclassMixin):
     sub_technique_ids: list[str]
 
 
+@dataclass(frozen=True, kw_only=True)
+class VersionedThreatMapping(MarshmallowDataclassMixin):
+    """Mapping to a threat framework tagged with the framework version it targets."""
+
+    framework: Literal["MITRE ATT&CK", "MITRE ATLAS"]
+    version: str
+    threat: list[ThreatMapping]
+
+    @validates_schema
+    def validate_framework_agreement(self, data: dict[str, Any], **_: Any) -> None:
+        """Ensure inner threat entries use the same framework as the versioned wrapper."""
+        framework = cast("str | None", data.get("framework"))
+        for entry in cast("list[dict[str, Any] | ThreatMapping]", data.get("threat") or []):
+            entry_framework = cast("str", entry["framework"] if isinstance(entry, dict) else entry.framework)
+            if entry_framework != framework:
+                raise ValidationError(
+                    f"threat_mappings entry for {framework} version {data.get('version')} contains a "
+                    f"threat with mismatched framework '{entry_framework}'"
+                )
+
+
 @dataclass(frozen=True)
 class AlertSuppressionDuration:
     """Mapping to alert suppression duration."""
@@ -409,6 +435,9 @@ class BaseRuleData(MarshmallowDataclassMixin, StackCompatMixin):
     severity_mapping: list[SeverityMapping] | None = None
     tags: list[str] | None = None
     threat: list[ThreatMapping] | None = None
+    # additional framework/version-tagged mappings; the build emits one as the API threat and strips
+    # this field (see stack_emit.apply_emit_transforms / mitre_attack_v19)
+    threat_mappings: list[VersionedThreatMapping] | None = None
     throttle: str | None = None
     timeline_id: definitions.TimelineTemplateId | None = None
     timeline_title: definitions.TimelineTemplateTitle | None = None
@@ -502,11 +531,39 @@ class BaseRuleData(MarshmallowDataclassMixin, StackCompatMixin):
             )
             raise ValidationError(msg)
 
+    @validates_schema
+    def validates_threat_mappings(self, data: dict[str, Any], **_: Any) -> None:
+        """Ensure versioned threat mappings have unique (framework, version) keys."""
+        threat_mappings = data.get("threat_mappings")
+        if not threat_mappings:
+            return
+
+        seen: set[tuple[str, str]] = set()
+        for entry in cast("list[dict[str, Any] | VersionedThreatMapping]", threat_mappings):
+            framework = cast("str", entry["framework"] if isinstance(entry, dict) else entry.framework)
+            version = cast("str", entry["version"] if isinstance(entry, dict) else entry.version)
+            key: tuple[str, str] = (framework, version)
+            if key in seen:
+                raise ValidationError(
+                    f"Duplicate threat_mappings entry for framework '{framework}' version '{version}'"
+                )
+            seen.add(key)
+
+    def get_primary_tactic_names(self) -> list[str]:
+        """Return the primary tactic name from the baseline threat and every threat_mappings block."""
+        names: list[str] = []
+        if self.threat:
+            names.append(self.threat[0].tactic.name)
+        for versioned_block in self.threat_mappings or []:
+            if versioned_block.threat and versioned_block.threat[0].tactic.name not in names:
+                names.append(versioned_block.threat[0].tactic.name)
+        return names
+
 
 class DataValidator:
     """Additional validation beyond base marshmallow schema validation."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         name: definitions.RuleName,
         is_elastic_rule: bool,
@@ -650,8 +707,8 @@ class QueryValidator:
     def validate(self, _: "QueryRuleData", __: RuleMeta) -> None:
         raise NotImplementedError
 
-    @cached
-    def get_required_fields(self, index: str) -> list[dict[str, Any]]:
+    @cached_method
+    def get_required_fields(self, index: list[str]) -> list[dict[str, Any]]:
         """Retrieves fields needed for the query along with type information from the schema."""
 
         current_version = Version.parse(load_current_package_version(), optional_minor_and_patch=True)
@@ -665,20 +722,27 @@ class QueryValidator:
 
         # construct integration schemas
         packages_manifest = load_integrations_manifests()
-        integrations_schemas = load_integrations_schemas()
         datasets: set[str] = set()
         if self.ast:
             datasets, _ = beats.get_datasets_and_modules(self.ast)
         package_integrations = parse_datasets(list(datasets), packages_manifest)
         int_schema: dict[str, Any] = {}
         data = {"notify": False}
+        patch_floor = find_latest_integration_patch_for_minor(
+            {pk_int["package"] for pk_int in package_integrations},
+            current_version.major,
+            current_version.minor,
+        )
+        min_stack = Version(
+            current_version.major,
+            current_version.minor,
+            max(current_version.patch, patch_floor),
+        )
 
         for pk_int in package_integrations:
             package = pk_int["package"]
             integration = pk_int["integration"]
-            schema, _ = get_integration_schema_fields(
-                integrations_schemas, package, integration, current_version, packages_manifest, {}, data
-            )
+            schema, _ = get_integration_schema_fields(package, integration, min_stack, data)
             int_schema.update(schema)
 
         required: list[dict[str, Any]] = []
@@ -699,13 +763,13 @@ class QueryValidator:
                     field_type = endgame_schema.endgame_schema.get(fld, None)
 
             if not field_type and isinstance(self, ESQLValidator):
-                field_type = self.get_unique_field_type(fld)
+                field_type = getattr(self, "_resolved_field_types", {}).get(fld)
 
             required.append({"name": fld, "type": field_type or "unknown", "ecs": is_ecs})
 
         return sorted(required, key=lambda f: f["name"])
 
-    @cached
+    @cached_method
     def get_beats_schema(
         self, indices: list[str], beats_version: str, ecs_version: str
     ) -> tuple[list[str], dict[str, Any] | None, dict[str, Any]]:
@@ -715,7 +779,7 @@ class QueryValidator:
         schema = ecs.get_kql_schema(version=ecs_version, indexes=indices, beat_schema=beat_schema)
         return beat_types, beat_schema, schema
 
-    @cached
+    @cached_method
     def get_endgame_schema(self, indices: list[str], endgame_version: str) -> endgame.EndgameSchema | None:
         """Get an assembled flat endgame schema."""
         # Only include endgame when explicitly requested by TOML via indices
@@ -731,7 +795,7 @@ class QueryRuleData(BaseRuleData):
     """Specific fields for query event types."""
 
     type: Literal["query"]
-    query: str
+    query: str | None = None
     language: definitions.FilterLanguages
     alert_suppression: AlertSuppressionMapping | None = field(metadata={"metadata": {"min_compat": "8.8"}})
 
@@ -749,12 +813,15 @@ class QueryRuleData(BaseRuleData):
 
     @cached_property
     def validator(self) -> QueryValidator | None:
+        query = self.query or ""
         if self.language == "kuery":
-            return KQLValidator(self.query)
+            if not query.strip() and self.filters and CUSTOM_RULES_DIR:
+                return None
+            return KQLValidator(query)
         if self.language == "eql":
-            return EQLValidator(self.query)
+            return EQLValidator(query)
         if self.language == "esql":
-            return ESQLValidator(self.query)
+            return ESQLValidator(query)
         return None
 
     def validate_query(self, meta: RuleMeta) -> None:  # type: ignore[reportIncompatibleMethodOverride]
@@ -776,8 +843,8 @@ class QueryRuleData(BaseRuleData):
             return validator.unique_fields
         return None
 
-    @cached
-    def get_required_fields(self, index: str) -> list[dict[str, Any]] | None:
+    @cached_method
+    def get_required_fields(self, index: list[str]) -> list[dict[str, Any]] | None:
         validator = self.validator
         if validator is not None:
             return validator.get_required_fields(index or [])
@@ -788,6 +855,18 @@ class QueryRuleData(BaseRuleData):
         """Validate that either index or data_view_id is set, but not both."""
         if data.get("index") and data.get("data_view_id"):
             raise ValidationError("Only one of index or data_view_id should be set.")
+
+    @validates_schema
+    def validates_query_or_filters(self, data: dict[str, Any], **_: Any) -> None:
+        """Validate that a query is present, unless this is a filter-only KQL custom rule."""
+        query = (data.get("query") or "").strip()
+        if query:
+            return
+        filter_only_allowed = data.get("language") == "kuery" and data.get("filters") and CUSTOM_RULES_DIR
+        if filter_only_allowed:
+            data["query"] = ""
+            return
+        raise ValidationError("Missing data for required field.", field_name="query")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -954,79 +1033,87 @@ class EQLRuleData(QueryRuleData):
         return None
 
 
+def _esql_load_error(exc: BaseException) -> Exception:
+    """Add rule-load bypass hints to a mapped ES|QL semantic error."""
+    mapped = public_esql_error(exc)
+    if not isinstance(mapped, EsqlSemanticError):
+        return mapped
+    message = str(mapped).lower()
+    hint = ""
+    if "keep" in message:
+        hint = " To bypass ES|QL `keep` validation, set the environment variable `DR_BYPASS_ESQL_KEEP_VALIDATION`."
+    elif "metadata" in message:
+        hint = (
+            " To bypass ES|QL `FROM` metadata validation, set the environment variable "
+            "`DR_BYPASS_ESQL_METADATA_VALIDATION`."
+        )
+    if not hint:
+        return mapped
+    return EsqlSemanticError(f"{mapped}{hint}")
+
+
 @dataclass(frozen=True, kw_only=True)
 class ESQLRuleData(QueryRuleData):
     """ESQL rules are a special case of query rules."""
 
     type: Literal["esql"]  # type: ignore[reportIncompatibleVariableOverride]
     language: Literal["esql"]
-    query: str
+    query: str  # type: ignore[reportGeneralTypeIssues]
     alert_suppression: AlertSuppressionMapping | None = field(metadata={"metadata": {"min_compat": "8.15"}})
 
     @validates_schema
     def validates_esql_data(self, data: dict[str, Any], **_: Any) -> None:
         """Custom validation for query rule type and subclasses."""
+        import esql  # local import: avoid cycle with rule_validators at module import
+
         if data.get("index"):
             raise EsqlSemanticError("Index is not a valid field for ES|QL rule type.")
 
-        # Convert the query string to lowercase to handle case insensitivity
-        query_lower = data["query"].lower()
+        bypass_metadata = os.environ.get("DR_BYPASS_ESQL_METADATA_VALIDATION") is not None
+        bypass_keep = os.environ.get("DR_BYPASS_ESQL_KEEP_VALIDATION") is not None
 
-        # Combine both patterns using an OR operator and compile the regex.
-        # The first part matches the metadata fields in the from clause by allowing one or
-        # multiple indices and any order of the metadata fields
-        # The second part matches the stats command with the by clause
-        combined_pattern = re.compile(
-            r"(from\s+(?:\S+\s*,\s*)*\S+\s+metadata\s+"
-            r"(?:_id|_version|_index)(?:,\s*(?:_id|_version|_index)){2})"
-            r"|(\bstats\b.*?\bby\b)",
-            re.DOTALL,
-        )
+        cfg = set_esql_config(load_current_package_version())
 
-        # Ensure that non-aggregate queries have metadata
-        if os.environ.get("DR_BYPASS_ESQL_METADATA_VALIDATION") is None:
-            bypass_metadata_hint = (
-                " To bypass ES|QL `FROM` metadata validation, set the environment variable "
-                "`DR_BYPASS_ESQL_METADATA_VALIDATION`."
-            )
-            if not combined_pattern.search(query_lower):
-                raise EsqlSemanticError(
-                    f"Rule: {data['name']} contains a non-aggregate query without"
-                    f" metadata fields '_id', '_version', and '_index' ->"
-                    f" Add 'metadata _id, _version, _index' to the from command or add an aggregate function."
-                    + bypass_metadata_hint
+        def reject_incomplete_keeps(tree: Any) -> None:
+            """Require metadata columns on every KEEP of a non-aggregating query."""
+            if esql.has_aggregating_stats(tree):
+                return
+            required = {"_id", "_version", "_index"}
+            for cmd in tree.commands:
+                if not isinstance(cmd, esql.ast.KeepCommand):
+                    continue
+                fields = {c.strip() for c in (*cmd.columns, *cmd.wildcards)}
+                if "*" in fields or required.issubset(fields):
+                    continue
+                raise esql.EsqlSemanticError(
+                    f"Rule: {data['name']} contains a keep clause without metadata fields "
+                    f"'_id', '_version', and '_index' -> Add '_id', '_version', '_index' to the keep command."
                 )
 
-        # Enforce KEEP command for ESQL rules and that METADATA fields are present in non-aggregate queries
-        if os.environ.get("DR_BYPASS_ESQL_KEEP_VALIDATION") is None:
-            bypass_keep_hint = (
-                " To bypass ES|QL `keep` validation, set the environment variable `DR_BYPASS_ESQL_KEEP_VALIDATION`."
-            )
-            # Match | followed by optional whitespace/newlines and then 'keep'
-            keep_pattern = re.compile(r"\|\s*keep\b\s+([^\|]+)", re.IGNORECASE | re.DOTALL)
-            keep_matches = list(keep_pattern.finditer(query_lower))
-            if not keep_matches:
-                raise EsqlSemanticError(
-                    f"Rule: {data['name']} does not contain a 'keep' command -> Add a 'keep' command to the query."
-                    + bypass_keep_hint
-                )
-
-            # Ensure that keep clause includes metadata fields on non-aggregate queries
-            aggregate_pattern = re.compile(
-                r"\|\s*stats\b(?:\s+([^\|]+?))?(?:\s+by\s+([^\|]+))?", re.IGNORECASE | re.DOTALL
-            )
-            if not aggregate_pattern.search(query_lower):
-                for keep_match in keep_matches:
-                    raw_keep = re.sub(r"//.*", "", keep_match.group(1))
-                    keep_fields = [field.strip() for field in raw_keep.split(",") if field.strip()]
-                    if "*" not in keep_fields:
-                        required_metadata = {"_id", "_version", "_index"}
-                        if not required_metadata.issubset(set(map(str.strip, keep_fields))):
-                            raise EsqlSemanticError(
-                                f"Rule: {data['name']} contains a keep clause without"
-                                f" metadata fields '_id', '_version', and '_index' ->"
-                                f" Add '_id', '_version', '_index' to the keep command." + bypass_keep_hint
-                            )
+        try:
+            with cfg, esql.Schema({}, allow_missing=True):
+                tree = esql.parse_query(data["query"])
+            if not bypass_metadata and not bypass_keep:
+                esql.validate_detection_rule_query(tree, name=data["name"])
+                reject_incomplete_keeps(tree)
+            elif not bypass_metadata:
+                # KEEP bypassed: still enforce METADATA / aggregate shape.
+                if not esql.is_aggregate_query(tree):
+                    metadata = set(esql.get_metadata_fields(tree))
+                    if not {"_id", "_version", "_index"}.issubset(metadata):
+                        raise esql.EsqlSemanticError(
+                            f"Rule: {data['name']} contains a non-aggregate query without metadata fields "
+                            f"'_id', '_version', and '_index' -> Add 'metadata _id, _version, _index' "
+                            f"to the from command or add an aggregate function."
+                        )
+            elif not bypass_keep:
+                if not esql.has_keep(tree):
+                    raise esql.EsqlSemanticError(
+                        f"Rule: {data['name']} does not contain a 'keep' command -> Add a 'keep' command to the query."
+                    )
+                reject_incomplete_keeps(tree)
+        except esql.EsqlError as exc:
+            raise _esql_load_error(exc) from exc
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1074,7 +1161,16 @@ class ThreatMatchRuleData(QueryRuleData):
             else:
                 return
 
-            threat_query_validator.validate(self, meta)
+            # The threat query runs against the indicator indices, so schemas must be built from
+            # `threat_index` rather than the rule's source `index` patterns
+            threat_data = dataclasses.replace(
+                self,
+                index=self.threat_index,
+                data_view_id=None,
+                query=self.threat_query,
+                language=self.threat_language,
+            )
+            threat_query_validator.validate(threat_data, meta)
 
     def validate(self, meta: RuleMeta) -> None:  # noqa: ARG002
         """Validate negate usage and group semantics for threat mapping."""
@@ -1158,7 +1254,7 @@ class BaseRuleContents(ABC):
 
     @property
     def is_dirty(self) -> bool:
-        """Determine if the rule has changed since its version was locked."""
+        """Determine if the baseline rule content has changed since its version was locked."""
         min_stack = Version.parse(self.get_supported_version(), optional_minor_and_patch=True)
         existing_sha256 = self.version_lock.get_locked_hash(self.id, f"{min_stack.major}.{min_stack.minor}")
 
@@ -1170,6 +1266,48 @@ class BaseRuleContents(ABC):
 
         # Checking against current and previous version of the hash to avoid mass version bump
         return existing_sha256 not in (rule_hash, rule_hash_with_integrations)
+
+    @property
+    def is_emit_dirty(self) -> bool:
+        """True when the current package-stack emit payload differs from the locked emit epoch.
+
+        Baseline-only stacks (no transforms) are never emit-dirty. Comparison is channel-scoped
+        so it cannot oscillate against the baseline lock hash.
+
+        "No-op" detection compares transformed vs untransformed API payloads (both include
+        related_integrations). Comparing against get_hash() would be wrong because the
+        baseline lock hash strips related_integrations.
+        """
+        if self.id not in self.version_lock.version_lock:
+            return False
+
+        package_stack = parse_stack(load_current_package_version())
+        if not transforms_for_stack(package_stack) or emit_epoch_key(package_stack) is None:
+            return False
+
+        emit_hash = self.get_emit_hash()
+        untransformed_hash = self.get_untransformed_hash()
+        transforms_noop = emit_hash == untransformed_hash
+        locked_emit = self.version_lock.get_stack_emit_hash(self.id, package_stack)
+
+        if transforms_noop:
+            # Stale emit epoch still present for a no-op transform set → needs prune/relock.
+            return locked_emit is not None
+
+        if locked_emit is None:
+            return True
+        return locked_emit != emit_hash
+
+    def get_untransformed_hashable_content(self) -> dict[str, Any]:
+        """API payload with build-time fields but without stack emit transforms."""
+        payload = self._hash_api_payload(apply_emit_transforms=False)
+        if self._uses_keep_star(payload):
+            payload.pop("required_fields", None)
+        return payload
+
+    def get_untransformed_hash(self) -> str:
+        """Hash of the untransformed API payload (peer of get_emit_hash)."""
+        return utils.dict_hash(self.get_untransformed_hashable_content())
 
     @property
     def lock_entry(self) -> dict[str, Any] | None:
@@ -1229,6 +1367,23 @@ class BaseRuleContents(ABC):
         return self.version_lock.get_locked_version(self.id, self.get_supported_version())
 
     @property
+    def shipped_version(self) -> int | None:
+        """Version embedded in the package for the current package stack (baseline or stack_emit)."""
+        if BYPASS_VERSION_LOCK:
+            return self.saved_version
+
+        version = self.version_lock.get_shipped_version(
+            self.id,
+            self.get_supported_version(),
+            load_current_package_version(),
+        )
+        if version is None:
+            return None
+        if self.is_emit_dirty and not self.is_dirty:
+            return version + 1
+        return version
+
+    @property
     def autobumped_version(self) -> int | None:
         """Retrieve the current version of the rule, accounting for automatic increments."""
         version = self.saved_version
@@ -1265,17 +1420,32 @@ class BaseRuleContents(ABC):
         min_stack = self.convert_supported_version(rule_min_stack)  # type: ignore[reportUnknownArgumentType]
         return f"{min_stack.major}.{min_stack.minor}"
 
-    def _post_dict_conversion(self, obj: dict[str, Any]) -> dict[str, Any]:
+    def _post_dict_conversion(self, obj: dict[str, Any], *, apply_emit_transforms: bool = True) -> dict[str, Any]:
         """Transform the converted API in place before sending to Kibana."""
-
         # cleanup the whitespace in the rule
         obj = nested_normalize(obj)
+
+        # Repo-only field: never ship to Kibana. Stash for emit transforms (and subclasses
+        # that add fields before running transforms). Use object.__setattr__ because rule
+        # content dataclasses are frozen.
+        object.__setattr__(self, "_emit_threat_mappings", obj.pop("threat_mappings", None))
 
         # fill in threat.technique so it's never missing
         for threat_entry in obj.get("threat", []):
             threat_entry.setdefault("technique", [])
 
+        if apply_emit_transforms:
+            self._apply_stack_emit_transforms(obj)
+
         return obj
+
+    def _apply_stack_emit_transforms(self, obj: dict[str, Any]) -> None:
+        """Run registered stack emit transforms. Subclasses call this after adding build-time fields."""
+        _ = apply_emit_transforms(
+            obj,
+            stack=load_current_package_version(),
+            context=EmitContext(threat_mappings=getattr(self, "_emit_threat_mappings", None)),
+        )
 
     def _uses_keep_star(self, hashable_dict: dict[str, Any]) -> bool:
         """Check if this is an ES|QL rule that uses `| keep *` or fields ending with '*'."""
@@ -1294,14 +1464,33 @@ class BaseRuleContents(ABC):
         return False
 
     @abstractmethod
-    def to_api_format(self, include_version: bool = True) -> dict[str, Any]:
+    def to_api_format(self, include_version: bool = True, apply_emit_transforms: bool = True) -> dict[str, Any]:
         """Convert the rule to the API format."""
 
+    @cached_method
+    def _converted_api_payload(self, apply_emit_transforms: bool) -> dict[str, Any]:
+        """Unversioned API payload, converted (and re-validated) once per emit variant."""
+        # the hash paths ask for the same two payloads up to four times per rule (baseline hash,
+        # baseline hash with integrations, untransformed hash, emit hash) and every conversion
+        # re-runs the marshmallow validation of the build-time fields
+        return self.to_api_format(include_version=False, apply_emit_transforms=apply_emit_transforms)
+
+    def _hash_api_payload(self, apply_emit_transforms: bool) -> dict[str, Any]:
+        """Copy of the cached unversioned API payload, safe for callers to strip fields from."""
+        return copy.deepcopy(self._converted_api_payload(apply_emit_transforms=apply_emit_transforms))
+
     def get_hashable_content(self, include_version: bool = False, include_integrations: bool = False) -> dict[str, Any]:
-        """Returns the rule content to be used for calculating the hash value for the rule"""
+        """Returns the rule content to be used for calculating the hash value for the rule.
+
+        Always hashes the *baseline* (no stack emit transforms) so the lock hash is
+        stack-invariant and does not oscillate across release branches.
+        """
 
         # get the API dict without the version by default, otherwise it'll always be dirty.
-        hashable_dict = self.to_api_format(include_version=include_version)
+        if include_version:
+            hashable_dict = self.to_api_format(include_version=True, apply_emit_transforms=False)
+        else:
+            hashable_dict = self._hash_api_payload(apply_emit_transforms=False)
 
         # drop related integrations if present
         if not include_integrations:
@@ -1314,7 +1503,7 @@ class BaseRuleContents(ABC):
 
         return hashable_dict
 
-    @cached
+    @cached_method
     def get_hash(self, include_version: bool = False, include_integrations: bool = False) -> str:
         """Returns a sha256 hash of the rule contents"""
         hashable_contents = self.get_hashable_content(
@@ -1322,6 +1511,19 @@ class BaseRuleContents(ABC):
             include_integrations=include_integrations,
         )
         return utils.dict_hash(hashable_contents)
+
+    def get_emit_hashable_content(self) -> dict[str, Any]:
+        """Return the stack-transformed API payload used for stack_emit hashing."""
+        emit_dict = self._hash_api_payload(apply_emit_transforms=True)
+        # Emit hash includes related_integrations so ^ vs >= participates in the epoch.
+        if self._uses_keep_star(emit_dict):
+            emit_dict.pop("required_fields", None)
+        return emit_dict
+
+    @cached_method
+    def get_emit_hash(self) -> str:
+        """Hash of the current package-stack emitted payload (for stack_emit lock channel)."""
+        return utils.dict_hash(self.get_emit_hashable_content())
 
 
 @dataclass(frozen=True)
@@ -1402,14 +1604,18 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
                         set_nested_value(item, sub_key, None)
         return rule_dict
 
-    def _post_dict_conversion(self, obj: dict[str, Any]) -> dict[str, Any]:
+    def _post_dict_conversion(self, obj: dict[str, Any], *, apply_emit_transforms: bool = True) -> dict[str, Any]:
         """Transform the converted API in place before sending to Kibana."""
-        _ = super()._post_dict_conversion(obj)
+        # Skip transforms in the base call so related_integrations (and friends) exist first.
+        _ = super()._post_dict_conversion(obj, apply_emit_transforms=False)
 
         # build time fields
         self._convert_add_related_integrations(obj)
         self._convert_add_required_fields(obj)
         self._convert_add_setup(obj)
+
+        if apply_emit_transforms:
+            self._apply_stack_emit_transforms(obj)
 
         # validate new fields against the schema
         rule_type = obj["type"]
@@ -1428,11 +1634,11 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
 
         if not package_integrations and self.metadata.integration:
             packages_manifest = load_integrations_manifests()
-            current_stack_version = load_current_package_version()
 
             if self.check_restricted_field_version(field_name) and isinstance(
                 self.data, QueryRuleData | MachineLearningRuleData
             ):  # type: ignore[reportUnnecessaryIsInstance]
+                resolved_package_integrations: list[dict[str, Any]] = []
                 if (self.data.get("language") is not None and self.data.get("language") != "lucene") or self.data.get(
                     "type"
                 ) == "machine_learning":
@@ -1446,25 +1652,34 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
                         return
 
                     for package in package_integrations:
-                        package["version"] = find_least_compatible_version(
-                            package=package["package"],
-                            integration=package["integration"],
-                            current_stack_version=current_stack_version,
-                            packages_manifest=packages_manifest,
+                        integration = package.get("integration")
+                        integration_name = (
+                            integration if integration and integration != UNKNOWN_PACKAGE_INTEGRATION else None
                         )
-
-                        # if integration is not a policy template remove
-                        if package["version"]:
-                            version_data = packages_manifest.get(package["package"], {}).get(
-                                package["version"].strip("^"), {}
+                        try:
+                            result = resolve_related_integration_version(
+                                package=package["package"],
+                                packages_manifest=packages_manifest,
+                                integration=integration_name,
                             )
-                            policy_templates = version_data.get("policy_templates", [])
+                        except IntegrationVersionNotFoundError:
+                            continue
+                        package["version"] = result.expression
 
-                            if package["integration"] not in policy_templates:
-                                del package["integration"]
+                        # Union policy templates across manifest-backed versions only.
+                        policy_templates: set[str] = set()
+                        for manifest_version in result.manifest_versions:
+                            version_data = packages_manifest.get(package["package"], {}).get(manifest_version, {})
+                            policy_templates.update(version_data.get("policy_templates", []))
+
+                        if package["integration"] not in policy_templates:
+                            del package["integration"]
+                        resolved_package_integrations.append(package)
 
                 # remove duplicate entries
-                package_integrations = list({json.dumps(d, sort_keys=True): d for d in package_integrations}.values())
+                package_integrations = list(
+                    {json.dumps(d, sort_keys=True): d for d in resolved_package_integrations}.values()
+                )
                 obj.setdefault("related_integrations", package_integrations)
 
     def _convert_add_required_fields(self, obj: dict[str, Any]) -> None:
@@ -1511,7 +1726,7 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
                     obj[field_name] = field_value
                     break
 
-    @cached
+    @cached_method
     def _convert_get_setup_content(self, note_tree: list[Any]) -> str:
         """Get note paragraph starting from the setup header."""
         setup: list[str] = []
@@ -1568,7 +1783,7 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
         packaged_integrations: list[dict[str, Any]] = []
         datasets, _ = beats.get_datasets_and_modules(data.get("ast") or [])  # type: ignore[reportArgumentType]
         if isinstance(data, ESQLRuleData):
-            dataset_objs = get_esql_query_event_dataset_integrations(data.query)
+            dataset_objs = get_esql_query_event_dataset_integrations(data.query, tree=data.ast)
             datasets.update(str(obj) for obj in dataset_objs)
         # integration is None to remove duplicate references upstream in Kibana
         # chronologically, event.dataset, data_stream.dataset is checked for package:integration, then rule tags
@@ -1578,17 +1793,20 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
         rule_integrations: str | list[str] = meta.get("integration") or []
         if isinstance(rule_integrations, str):
             rule_integrations = [rule_integrations]
+        if not rule_integrations and data.related_integrations:
+            rule_integrations = list({ri.package for ri in data.related_integrations})
         for integration in rule_integrations:
-            ineligible_integrations = [
-                *definitions.NON_DATASET_PACKAGES,
-                *map(str.lower, definitions.MACHINE_LEARNING_PACKAGES),
-            ]
-            if (
-                integration in ineligible_integrations
-                or isinstance(data, MachineLearningRuleData)
-                or (isinstance(data, ESQLRuleData) and integration not in datasets)
+            package = normalize_dataset_package(integration)
+            ml_packages_lower = set(map(str.lower, definitions.MACHINE_LEARNING_PACKAGES))
+            if isinstance(data, MachineLearningRuleData):
+                packaged_integrations.append({"package": package, "integration": None})
+            elif package in definitions.NON_DATASET_PACKAGES:
+                if _metadata_package_row_needed(package, datasets):
+                    packaged_integrations.append({"package": package, "integration": None})
+            elif package.lower() in ml_packages_lower or (
+                isinstance(data, ESQLRuleData) and _metadata_package_row_needed(package, datasets)
             ):
-                packaged_integrations.append({"package": integration, "integration": None})
+                packaged_integrations.append({"package": package, "integration": None})
 
         packaged_integrations.extend(parse_datasets(list(datasets), package_manifest))
 
@@ -1612,7 +1830,7 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
             data.validate(metadata) if hasattr(data, "validate") else False  # type: ignore[reportUnknownMemberType]
 
     @staticmethod
-    def validate_remote(remote_validator: "RemoteValidator", contents: "TOMLRuleContents") -> None:
+    def validate_remote(remote_validator: Any, contents: "TOMLRuleContents") -> None:
         _ = remote_validator.validate_rule(contents)
 
     @classmethod
@@ -1652,6 +1870,8 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
     def to_api_format(
         self,
         include_version: bool = not BYPASS_VERSION_LOCK,
+        apply_emit_transforms: bool = True,
+        *,
         include_metadata: bool = False,
     ) -> dict[str, Any]:
         """Convert the TOML rule to the API format."""
@@ -1659,13 +1879,19 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
         rule_dict = self.to_dict()
         rule_dict = self._add_known_nulls(rule_dict)
         converted_data = rule_dict["rule"]
-        converted = self._post_dict_conversion(converted_data)
+        converted = self._post_dict_conversion(converted_data, apply_emit_transforms=apply_emit_transforms)
 
         if include_metadata:
             converted["meta"] = rule_dict["metadata"]
 
         if include_version:
-            converted["version"] = self.autobumped_version
+            # Prefer stack_emit/baseline shipped version when locked; autobumped
+            # defaults unlocked rules to 1 and handles baseline dirty bumps.
+            converted["version"] = (
+                self.autobumped_version
+                if self.is_dirty
+                else (self.shipped_version if self.shipped_version is not None else self.autobumped_version)
+            )
 
         return converted
 
@@ -1790,7 +2016,9 @@ class DeprecatedRuleContents(BaseRuleContents):
         kwargs["transform"] = obj.get("transform")
         return cls(**kwargs)
 
-    def to_api_format(self, include_version: bool = not BYPASS_VERSION_LOCK) -> dict[str, Any]:
+    def to_api_format(
+        self, include_version: bool = not BYPASS_VERSION_LOCK, apply_emit_transforms: bool = True
+    ) -> dict[str, Any]:
         """Convert the TOML rule to the API format."""
         data = copy.deepcopy(self.data)
         if self.transform:
@@ -1801,7 +2029,7 @@ class DeprecatedRuleContents(BaseRuleContents):
         if include_version:
             converted["version"] = self.autobumped_version
 
-        return self._post_dict_conversion(converted)
+        return self._post_dict_conversion(converted, apply_emit_transforms=apply_emit_transforms)
 
 
 class DeprecatedRule(dict[str, Any]):
@@ -1867,27 +2095,99 @@ def set_eql_config(min_stack_version_val: str) -> eql.parser.ParserConfig:
     return config
 
 
+def set_esql_config(min_stack_version_val: str) -> Any:
+    """Enable ES|QL features for this stack version (detection-rules-esql-py + DR overrides)."""
+    import esql  # local import: rule.py loads validators at module end
+
+    if min_stack_version_val:
+        min_stack_version = Version.parse(min_stack_version_val, optional_minor_and_patch=True)
+    else:
+        min_stack_version = Version.parse(load_current_package_version(), optional_minor_and_patch=True)
+
+    # Merge package defaults with optional DR overrides, then materialize a bool map
+    # under context["features"] — the key verify_features() reads (not top-level names).
+    features = {**esql.ESQL_FEATURES, **(definitions.ELASTICSEARCH_ESQL_FEATURES or {})}
+    feature_flags: dict[str, bool] = {}
+    for name, version_range in features.items():
+        lo, hi = version_range
+        lo_v = Version.parse(str(lo), optional_minor_and_patch=True) if not isinstance(lo, Version) else lo
+        hi_v = (
+            None
+            if hi is None
+            else (Version.parse(str(hi), optional_minor_and_patch=True) if not isinstance(hi, Version) else hi)
+        )
+        feature_flags[name] = lo_v <= min_stack_version <= (hi_v or min_stack_version)
+    cfg = esql.ParserConfig(min_stack_version=str(min_stack_version), features=feature_flags)
+
+    def _kql_parse(text: str) -> Any:
+        # Nested KQL() inside ES|QL commonly uses uppercase operators (NOT/AND/OR).
+        # Always normalize for Kibana parity; RULES_CONFIG.normalize_kql_keywords
+        # only governs top-level kuery rule queries.
+        return kql.parse(text, normalize_kql_keywords=True)  # type: ignore[reportUnknownMemberType, reportUnknownVariableType]
+
+    def _eql_parse(text: str) -> Any:
+        # Nested EQL() (gated to 9.7+ by the parser) uses the same hook model as KQL.
+        # Prefer full event queries; fall back to expression fragments.
+        eql_cfg = set_eql_config(str(min_stack_version))
+        with eql_cfg, eql.parser.elasticsearch_syntax, eql.parser.ignore_missing_functions:
+            try:
+                return eql.parse_query(text)  # type: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            except eql.EqlParseError:
+                return eql.parse_expression(text)  # type: ignore[reportUnknownMemberType, reportUnknownVariableType]
+
+    cfg.context["kql_parse"] = _kql_parse
+    cfg.context["eql_parse"] = _eql_parse
+    return cfg
+
+
 def get_unique_query_fields(rule: TOMLRule) -> list[str] | None:
     """Get a list of unique fields used in a rule query from rule contents."""
     contents = rule.contents.to_api_format()
     language = contents.get("language")
     query = contents.get("query")
-    if language not in ("kuery", "eql"):
+    if language not in ("kuery", "eql", "esql"):
         return None
 
-    # remove once py-eql supports ipv6 for cidrmatch
+    # Many rules (notably ES|QL) leave min_stack_version unset; the config setters
+    # fall back to the current package version when it is empty.
+    min_stack_version = rule.contents.metadata.get("min_stack_version") or ""
 
-    min_stack_version = rule.contents.metadata.get("min_stack_version")
-    if not min_stack_version:
-        raise ValueError("Min stack version not found")
+    if language == "esql":
+        import esql  # local import: avoid cycle with rule_validators
+
+        if not isinstance(query, str):
+            raise TypeError("ES|QL rule query must be a string")
+        cfg = set_esql_config(min_stack_version)
+        with cfg, esql.Schema({}, allow_missing=True):
+            tree = esql.parse_query(query)
+        from .rule_validators import ESQLValidator
+
+        names = set(esql.get_unique_fields(tree))
+        names.update(ESQLValidator.nested_query_field_names(tree))
+        return sorted(names)
+
+    # remove once py-eql supports ipv6 for cidrmatch
     cfg = set_eql_config(min_stack_version)
     with eql.parser.elasticsearch_syntax, eql.parser.ignore_missing_functions, eql.parser.skip_optimizations, cfg:
-        parsed = (  # type: ignore[reportUnknownVariableType]
-            kql.parse(query, normalize_kql_keywords=RULES_CONFIG.normalize_kql_keywords)  # type: ignore[reportUnknownMemberType]
-            if language == "kuery"
-            else eql.parse_query(query)  # type: ignore[reportUnknownMemberType]
-        )
-    return sorted({str(f) for f in parsed if isinstance(f, (eql.ast.Field | kql.ast.Field))})  # type: ignore[reportUnknownVariableType]
+        if language == "kuery":
+            parsed = kql.parse(query, normalize_kql_keywords=RULES_CONFIG.normalize_kql_keywords)  # type: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            return kql.get_field_names(parsed)  # type: ignore[reportUnknownMemberType, reportUnknownVariableType]
+
+        parsed = eql.parse_query(query)  # type: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    return sorted({str(f) for f in parsed if isinstance(f, eql.ast.Field)})  # type: ignore[reportUnknownVariableType]
+
+
+def _metadata_package_row_needed(integration: str, datasets: set[str]) -> bool:
+    """Return True when a metadata-only package row is still required."""
+    # Metadata tags the package name; query datasets use package.stream (e.g. endpoint.events.api).
+    if integration in datasets:
+        return False
+    prefix = f"{integration}."
+    return not any(dataset.startswith(prefix) for dataset in datasets)
+
+
+# Backward-compatible alias for ES|QL export tests and callers.
+_esql_metadata_package_row_needed = _metadata_package_row_needed
 
 
 def parse_datasets(datasets: list[str], package_manifest: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1897,7 +2197,7 @@ def parse_datasets(datasets: list[str], package_manifest: dict[str, Any]) -> lis
         # cleanup extra quotes pulled from ast field
         value = _value.strip('"')
 
-        integration = "Unknown"
+        integration = UNKNOWN_PACKAGE_INTEGRATION
         if "." in value:
             package, integration = value.split(".", 1)
             # Handle cases where endpoint event datasource needs to be parsed uniquely (e.g endpoint.events.network)

@@ -2,7 +2,7 @@
 creation_date = "2022/09/06"
 integration = ["google_workspace"]
 maturity = "production"
-updated_date = "2026/05/22"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -91,12 +91,18 @@ severity = "low"
 tags = [
     "Domain: Cloud",
     "Data Source: Google Workspace",
+    "Data Source: Google Workspace Audit Logs",
     "Use Case: Configuration Audit",
     "Tactic: Persistence",
     "Tactic: Privilege Escalation",
     "Resources: Investigation Guide",
+    "Noise: Medium",
+    "Performance: Normal",
+    "Rule Type: Custom Query (KQL)",
+    "Platform: Google Workspace",
+    "Domain: SaaS",
     "vigilant.alerting.high_risk",
-    "vigilant.alerting.sensitive_environment_changes"
+    "vigilant.alerting.sensitive_environment_changes",
 ]
 timestamp_override = "event.ingested"
 type = "query"
