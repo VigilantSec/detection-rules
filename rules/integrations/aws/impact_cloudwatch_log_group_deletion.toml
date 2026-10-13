@@ -142,6 +142,7 @@ tags = [
     "Profile: Aggressive",
     "vigilant.alerting.sensitive_environment_changes",
     "vigilant.alerting.passthrough",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "query"
