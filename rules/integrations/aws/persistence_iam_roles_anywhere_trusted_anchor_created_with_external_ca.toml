@@ -2,7 +2,7 @@
 creation_date = "2024/04/20"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -114,8 +114,14 @@ tags = [
     "Use Case: Identity and Access Audit",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
+    "Noise: Low",
+    "Performance: Normal",
+    "Rule Type: Event Correlation (EQL)",
+    "Platform: AWS",
+    "Data Source: AWS CloudTrail",
+    "Service: AWS IAM",
     "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

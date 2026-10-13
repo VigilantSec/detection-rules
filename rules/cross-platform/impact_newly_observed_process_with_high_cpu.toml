@@ -1,7 +1,7 @@
 [metadata]
 creation_date = "2026/01/27"
 maturity = "production"
-updated_date = "2026/01/27"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -60,6 +60,11 @@ tags = [
     "Resources: Investigation Guide",
     "Domain: Endpoint",
     "Tactic: Impact",
+    "Noise: Low",
+    "Performance: Normal",
+    "Profile: Recommended",
+    "Threat: Cryptomining",
+    "Rule Type: ES|QL",
     "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"

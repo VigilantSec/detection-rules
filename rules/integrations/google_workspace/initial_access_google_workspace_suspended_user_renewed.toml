@@ -2,7 +2,7 @@
 creation_date = "2020/11/17"
 integration = ["google_workspace"]
 maturity = "production"
-updated_date = "2026/05/22"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -74,18 +74,24 @@ references = [
     "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-one",
     "https://www.elastic.co/security-labs/google-workspace-attack-surface-part-two",
 ]
-risk_score = 21
+risk_score = 73
 rule_id = "00678712-b2df-11ed-afe9-f661ea17fbcc"
-severity = "low"
+severity = "high"
 tags = [
     "Domain: Cloud",
     "Data Source: Google Workspace",
+    "Data Source: Google Workspace Audit Logs",
     "Use Case: Identity and Access Audit",
     "Tactic: Initial Access",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
+    "Noise: Medium",
+    "Performance: Fast",
+    "Rule Type: Custom Query (KQL)",
+    "Platform: Google Workspace",
+    "Domain: SaaS",
     "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"

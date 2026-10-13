@@ -2,7 +2,7 @@
 creation_date = "2024/12/02"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -112,9 +112,15 @@ tags = [
     "Data Source: AWS IAM",
     "Use Case: Identity and Access Audit",
     "Tactic: Persistence",
-    "vigilant.alerting.sensitive_environment_changes",
     "Resources: Investigation Guide",
-    "vigilant.alerting.passthrough"
+    "Noise: Low",
+    "Performance: Normal",
+    "Rule Type: Event Correlation (EQL)",
+    "Platform: AWS",
+    "Data Source: AWS CloudTrail",
+    "Service: AWS IAM",
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

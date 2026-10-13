@@ -2,7 +2,7 @@
 creation_date = "2021/08/01"
 integration = ["azure"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Austin Songer"]
@@ -74,8 +74,13 @@ tags = [
     "Use Case: Network Security Monitoring",
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",
-    "vigilant.disabled",
+    "Noise: Low",
+    "Performance: Fast",
+    "Rule Type: Custom Query (KQL)",
+    "Platform: Azure",
+    "Data Source: Azure Activity Logs",
     "DISABLED.NOTE - DUE TO OVERLAP WITH [SIGMA] Azure Network Firewall Policy Modified or Deleted (83c17918-746e-4bd9-920b-8e098bf88c23)",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"

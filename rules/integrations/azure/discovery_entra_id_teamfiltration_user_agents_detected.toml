@@ -2,7 +2,7 @@
 creation_date = "2025/07/02"
 integration = ["azure", "o365"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -76,20 +76,28 @@ references = [
     "https://www.proofpoint.com/us/blog/threat-insight/attackers-unleash-teamfiltration-account-takeover-campaign",
     "https://github.com/Flangvik/TeamFiltration",
 ]
-risk_score = 47
+risk_score = 73
 rule_id = "f541ca3a-5752-11f0-b44b-f661ea17fbcd"
-severity = "medium"
+severity = "high"
 tags = [
     "Domain: Cloud",
     "Data Source: Azure",
     "Data Source: Microsoft 365",
     "Data Source: Microsoft 365 Audit Logs",
     "Data Source: Microsoft Entra ID",
-    "Data Source: Microsoft Entra ID Sign-in Logs",
+    "Data Source: Microsoft Entra ID Sign-In Logs",
     "Use Case: Identity and Access Audit",
     "Use Case: Threat Detection",
     "Tactic: Discovery",
     "Resources: Investigation Guide",
+    "Noise: Low",
+    "Performance: Fast",
+    "Profile: Recommended",
+    "Rule Type: Custom Query (KQL)",
+    "Platform: Entra ID",
+    "Domain: Identity",
+    "Platform: Microsoft 365",
+    "Domain: SaaS",
 ]
 timestamp_override = "event.ingested"
 type = "query"

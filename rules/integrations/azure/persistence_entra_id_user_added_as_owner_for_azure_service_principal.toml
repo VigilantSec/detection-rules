@@ -2,7 +2,7 @@
 creation_date = "2020/08/20"
 integration = ["azure"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -68,9 +68,15 @@ tags = [
     "Use Case: Configuration Audit",
     "Tactic: Persistence",
     "Resources: Investigation Guide",
+    "Noise: Low",
+    "Performance: Normal",
+    "Rule Type: Custom Query (KQL)",
+    "Platform: Entra ID",
+    "Domain: Identity",
+    "Data Source: Entra ID Audit Logs",
     "vigilant.alerting.sensitive_environment_changes",
     "vigilant.alerting.passthrough",
-    "vigilant.alerting.beta"
+    "vigilant.alerting.beta",
 ]
 timestamp_override = "event.ingested"
 type = "query"
