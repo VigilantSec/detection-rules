@@ -2,7 +2,7 @@
 creation_date = "2020/05/28"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -97,11 +97,16 @@ tags = [
     "Domain: Cloud",
     "Data Source: AWS",
     "Data Source: Amazon Web Services",
-    "Data Source: AWS GuardDuty",
+    "Platform: AWS",
+    "Data Source: AWS CloudTrail",
+    "Service: AWS GuardDuty",
     "Tactic: Defense Evasion",
+    "Rule Type: Custom Query (KQL)",
     "Resources: Investigation Guide",
+    "Noise: Medium",
+    "Performance: Normal",
     "vigilant.alerting.sensitive_environment_changes",
-    "vigilant.alerting.passthrough"
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "query"
@@ -111,6 +116,7 @@ data_stream.dataset: aws.cloudtrail
   and event.provider: guardduty.amazonaws.com 
   and event.action: DeleteDetector 
   and event.outcome: success
+  and not user_agent.original: (*Terraform* or *Pulumi*)
 '''
 
 

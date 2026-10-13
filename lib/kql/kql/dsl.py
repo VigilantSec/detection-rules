@@ -5,7 +5,32 @@
 
 from collections import defaultdict
 from eql import Walker
+from .ast import Wildcard
 from .errors import KqlCompileError
+
+
+# Lucene `query_string` reserved characters. Mirrors Kibana's
+# `escapeQueryString` in src/plugins/data/common/es_query/kuery/node_types/wildcard.ts:
+#   /[+\-=&|><!(){}[\]^"~*?:\\/]/g
+# The leading `/` in particular must be escaped because Lucene treats `/.../`
+# as a regex delimiter (see https://github.com/elastic/detection-rules/issues/441).
+_LUCENE_QUERY_STRING_SPECIALS = set('+-=&|><!(){}[]^"~*?:\\/')
+
+
+def _escape_query_string_wildcard(value: str) -> str:
+    """Convert a KQL wildcard value into a Lucene query_string.query string."""
+    # Escapes Lucene specials while preserving `*` as the wildcard marker, mirroring
+    # Kibana's `toQueryStringQuery`. Only called for `Wildcard` nodes (always a string).
+    escaped = []
+    for char in value:
+        if char == '*':
+            escaped.append('*')
+        elif char in _LUCENE_QUERY_STRING_SPECIALS:
+            escaped.append('\\')
+            escaped.append(char)
+        else:
+            escaped.append(char)
+    return ''.join(escaped)
 
 
 def boolean(**kwargs):
@@ -74,6 +99,13 @@ def boolean(**kwargs):
 
 
 class ToDsl(Walker):
+    def __init__(self):
+        super().__init__()
+        # Stack of absolute nested field paths currently in scope. Leaf field names
+        # inside a `nested` query are relative, so they must be prefixed with the
+        # enclosing nested path to build valid Elasticsearch `nested` queries.
+        self._nested_stack = []
+
     def _walk_default(self, node, *args, **kwargs):
         raise KqlCompileError("Unable to convert {}".format(node))
 
@@ -81,13 +113,28 @@ class ToDsl(Walker):
         return lambda field: {"exists": {"field": field}}
 
     def _walk_wildcard(self, tree):
-        return lambda field: {"query_string": {"fields": [field], "query": tree.value}}
+        query = _escape_query_string_wildcard(tree.value)
+        return lambda field: {"query_string": {"fields": [field], "query": query}}
 
     def _walk_value(self, tree):
         return lambda field: {"match": {field: tree.value}}
 
     def _walk_field(self, field):
+        if self._nested_stack:
+            return self._nested_stack[-1] + "." + field.name
         return field.name
+
+    def _walk_nested_query(self, tree):
+        prefix = (self._nested_stack[-1] + ".") if self._nested_stack else ""
+        full_path = prefix + tree.field.name
+
+        self._nested_stack.append(full_path)
+        try:
+            inner = self.walk(tree.expr)
+        finally:
+            self._nested_stack.pop()
+
+        return {"nested": {"path": full_path, "query": inner, "score_mode": "none"}}
 
     def _walk_field_range(self, tree):
         operator_map = {"<": "lt", "<=": "lte", ">=": "gte", ">": "gt"}
@@ -114,6 +161,25 @@ class ToDsl(Walker):
     def _walk_not_value(self, tree):
         child = self.walk(tree.value)
         return lambda field: boolean(must_not=[child(field)])
+
+    def _walk_free_text(self, tree):
+        # Mirrors Kibana's `is` function with a null field (kbn-es-query is.ts): a wildcard
+        # becomes a query_string; any other value a lenient multi_match so non-text fields
+        # are skipped instead of erroring. Neither names `fields`, so Elasticsearch falls
+        # back to the `index.query.default_field` setting (`*` by default) — same as Kibana.
+        if isinstance(tree.value, Wildcard):
+            return {"query_string": {"query": _escape_query_string_wildcard(tree.value.value)}}
+        value = tree.value.value
+        if not isinstance(value, str):
+            # Bare unquoted terms can parse as numbers/booleans/null, but `multi_match.query`
+            # must be text (a JSON null is rejected outright), so send the KQL token text
+            # back instead (`1`, `true`, `null`).
+            value = tree.value.render()
+        # Kibana: `const type = valueArg.isQuoted ? 'phrase' : 'best_fields'`. A quoted value
+        # must match as a phrase; `best_fields` would instead OR the analyzed terms together
+        # and match far more broadly.
+        match_type = "phrase" if tree.is_quoted else "best_fields"
+        return {"multi_match": {"type": match_type, "query": value, "lenient": True}}
 
     def _walk_field_comparison(self, tree):
         field = self.walk(tree.field)

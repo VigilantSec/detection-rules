@@ -2,7 +2,7 @@
 creation_date = "2024/12/17"
 integration = ["aws"]
 maturity = "production"
-updated_date = "2026/04/10"
+updated_date = "2026/09/18"
 
 [rule]
 author = ["Elastic"]
@@ -100,8 +100,15 @@ tags = [
     "Use Case: Asset Visibility",
     "Resources: Investigation Guide",
     "Tactic: Collection",
+    "Noise: High",
+    "Performance: Normal",
+    "Profile: Aggressive",
+    "Rule Type: New Terms",
+    "Platform: AWS",
+    "Data Source: AWS CloudTrail",
+    "Service: AWS S3",
     "vigilant.alerting.exfil",
-    "vigilant.alerting.high_risk"
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

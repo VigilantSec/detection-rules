@@ -10,11 +10,13 @@ import re
 import unittest
 import uuid
 from collections import defaultdict
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import ClassVar
 
 import eql
 import kql
+import pytoml
 from marshmallow import ValidationError
 from semver import Version
 
@@ -236,23 +238,23 @@ class TestThreatMappings(BaseRuleTest):
         self.fail(f"Unknown framework '{framework}' for rule: {self.rule_str(rule)}")
         return None, None  # unreachable, but needed for type checking
 
-    def _validate_tactic(self, framework_module, framework_name: str, tactic, rule):
+    def _validate_tactic(self, framework_module, framework_name: str, tactic, rule, *, context: str = ""):
         """Validate tactic mapping and reference."""
         # Validate techniques are under the correct tactic
         if tactic.name not in framework_module.matrix:
-            self.fail(f"Unknown {framework_name} tactic '{tactic.name}' for rule: {self.rule_str(rule)}")
+            self.fail(f"Unknown {framework_name} tactic '{tactic.name}' for rule: {self.rule_str(rule)}{context}")
 
         # Validate tactic ID mapping
         expected_tactic = framework_module.tactics_map.get(tactic.name)
         if expected_tactic is None:
             self.fail(
-                f"{framework_name} tactic mapping error for rule: {self.rule_str(rule)}\n"
+                f"{framework_name} tactic mapping error for rule: {self.rule_str(rule)}{context}\n"
                 f"Unknown tactic name: {tactic.name}"
             )
         self.assertEqual(
             expected_tactic,
             tactic.id,
-            f"{framework_name} tactic mapping error for rule: {self.rule_str(rule)}\n"
+            f"{framework_name} tactic mapping error for rule: {self.rule_str(rule)}{context}\n"
             f"expected:  {expected_tactic} for {tactic.name}\n"
             f"actual: {tactic.id}",
         )
@@ -262,23 +264,23 @@ class TestThreatMappings(BaseRuleTest):
         self.assertEqual(
             tactic.id,
             tactic_reference_id,
-            f"{framework_name} tactic mapping error for rule: {self.rule_str(rule)}\n"
+            f"{framework_name} tactic mapping error for rule: {self.rule_str(rule)}{context}\n"
             f"tactic ID {tactic.id} does not match the reference URL ID "
             f"{tactic.reference}",
         )
 
-    def _validate_technique(self, framework_module, framework_name: str, technique, rule):
+    def _validate_technique(self, framework_module, framework_name: str, technique, rule, *, context: str = ""):
         """Validate technique mapping and reference."""
         if technique.id not in framework_module.technique_lookup:
             self.fail(
-                f"{framework_name} technique mapping error for rule: {self.rule_str(rule)}\n"
+                f"{framework_name} technique mapping error for rule: {self.rule_str(rule)}{context}\n"
                 f"Unknown technique ID: {technique.id}"
             )
         expected_technique = framework_module.technique_lookup[technique.id]["name"]
         self.assertEqual(
             expected_technique,
             technique.name,
-            f"{framework_name} technique mapping error for rule: {self.rule_str(rule)}\n"
+            f"{framework_name} technique mapping error for rule: {self.rule_str(rule)}{context}\n"
             f"expected: {expected_technique} for {technique.id}\n"
             f"actual: {technique.name}",
         )
@@ -287,23 +289,32 @@ class TestThreatMappings(BaseRuleTest):
         self.assertEqual(
             technique.id,
             technique_reference_id,
-            f"{framework_name} technique mapping error for rule: {self.rule_str(rule)}\n"
+            f"{framework_name} technique mapping error for rule: {self.rule_str(rule)}{context}\n"
             f"technique ID {technique.id} does not match the reference URL ID "
             f"{technique.reference}",
         )
 
-    def _validate_subtechnique(self, framework_module, framework_name: str, sub_technique, framework: str, rule):
+    def _validate_subtechnique(  # noqa: PLR0913
+        self,
+        framework_module,
+        framework_name: str,
+        sub_technique,
+        framework: str,
+        rule,
+        *,
+        context: str = "",
+    ):
         """Validate sub-technique mapping and reference."""
         if sub_technique.id not in framework_module.technique_lookup:
             self.fail(
-                f"{framework_name} sub-technique mapping error for rule: {self.rule_str(rule)}\n"
+                f"{framework_name} sub-technique mapping error for rule: {self.rule_str(rule)}{context}\n"
                 f"Unknown sub-technique ID: {sub_technique.id}"
             )
         expected_sub_technique = framework_module.technique_lookup[sub_technique.id]["name"]
         self.assertEqual(
             expected_sub_technique,
             sub_technique.name,
-            f"{framework_name} sub-technique mapping error for rule: {self.rule_str(rule)}\n"
+            f"{framework_name} sub-technique mapping error for rule: {self.rule_str(rule)}{context}\n"
             f"expected: {expected_sub_technique} for {sub_technique.id}\n"
             f"actual: {sub_technique.name}",
         )
@@ -318,7 +329,7 @@ class TestThreatMappings(BaseRuleTest):
         self.assertEqual(
             sub_technique.id,
             sub_technique_reference_id,
-            f"{framework_name} sub-technique mapping error for rule: {self.rule_str(rule)}\n"
+            f"{framework_name} sub-technique mapping error for rule: {self.rule_str(rule)}{context}\n"
             f"sub-technique ID {sub_technique.id} does not match the reference URL ID "
             f"{sub_technique.reference}",
         )
@@ -333,10 +344,12 @@ class TestThreatMappings(BaseRuleTest):
                     tactic = entry.tactic
                     techniques = entry.technique or []
 
-                    # TODO: ATLAS framework validation temporarily disabled until Security Solution supports it
-                    # Remove this skip once ATLAS threat mappings are fully supported in the product
+                    # ATLAS belongs in threat_mappings (shipped only on 9.6+), not baseline threat.
                     if framework == "MITRE ATLAS":
-                        continue
+                        self.fail(
+                            f"{self.rule_str(rule)} has MITRE ATLAS in baseline [[rule.threat]]; "
+                            "author ATLAS in [[rule.threat_mappings]] instead"
+                        )
 
                     # Select the appropriate framework module
                     framework_module, framework_name = self._get_framework_module(framework, rule)
@@ -376,6 +389,85 @@ class TestThreatMappings(BaseRuleTest):
                     f"Flatten to a single entry per tactic"
                 )
 
+    def test_versioned_threat_mappings_tactic_technique_correlations(self):
+        """Validate threat_mappings entries against their declared version's framework data."""
+        for rule in self.all_rules:
+            threat_mappings = rule.contents.data.threat_mappings
+            if not threat_mappings:
+                continue
+            for versioned_block in threat_mappings:
+                framework = versioned_block.framework
+                try:
+                    if framework == "MITRE ATT&CK":
+                        lookups = attack.build_attack_lookups_for_version(versioned_block.version)
+                    elif framework == "MITRE ATLAS":
+                        lookups = atlas.build_atlas_lookups_for_version(versioned_block.version)
+                    else:
+                        continue
+                except FileNotFoundError:
+                    continue  # no local data for this version; validation skipped
+                self._assert_versioned_block(rule, versioned_block, lookups)
+
+    def _assert_versioned_block(self, rule, versioned_block, lookups) -> None:
+        """Validate one versioned threat_mappings block against that version's framework data."""
+        framework = versioned_block.framework
+        _, framework_name = self._get_framework_module(framework, rule)
+        context = f" [threat_mappings {framework} v{versioned_block.version}]"
+
+        for entry in versioned_block.threat:
+            tactic = entry.tactic
+            techniques = entry.technique or []
+
+            # Validate techniques are under the correct tactic
+            mismatched = [t.id for t in techniques if t.id not in lookups.matrix.get(tactic.name, [])]
+            if mismatched:
+                self.fail(
+                    f"mismatched {framework_name} techniques for rule: {self.rule_str(rule)}{context} "
+                    f"{', '.join(mismatched)} not under: {tactic.name}"
+                )
+
+            # Validate tactic, techniques, and sub-techniques against the versioned lookups. The lookups
+            # object exposes the same matrix/tactics_map/technique_lookup surface as the framework module,
+            # so the baseline validators (including reference URL checks) apply unchanged.
+            self._validate_tactic(lookups, framework_name, tactic, rule, context=context)
+
+            for technique in techniques:
+                self._validate_technique(lookups, framework_name, technique, rule, context=context)
+
+                for sub_technique in technique.subtechnique or []:
+                    self._validate_subtechnique(
+                        lookups, framework_name, sub_technique, framework, rule, context=context
+                    )
+
+    def test_versioned_threat_mappings_deprecations(self):
+        """Check that threat_mappings entries don't use techniques deprecated in their declared version."""
+        for rule in self.all_rules:
+            threat_mappings = rule.contents.data.threat_mappings
+            if not threat_mappings:
+                continue
+            for versioned_block in threat_mappings:
+                if versioned_block.framework != "MITRE ATT&CK":
+                    continue
+                try:
+                    lookups = attack.build_attack_lookups_for_version(versioned_block.version)
+                except FileNotFoundError:
+                    continue
+
+                bad: dict[str, str] = {}
+                for entry in versioned_block.threat:
+                    for technique in entry.technique or []:
+                        if technique.id in lookups.revoked or technique.id in lookups.deprecated:
+                            bad[technique.id] = f"revoked/deprecated in ATT&CK v{versioned_block.version}"
+                        for sub in technique.subtechnique or []:
+                            if sub.id in lookups.revoked or sub.id in lookups.deprecated:
+                                bad[sub.id] = f"revoked/deprecated in ATT&CK v{versioned_block.version}"
+
+                if bad:
+                    self.fail(
+                        f"{self.rule_str(rule)} threat_mappings v{versioned_block.version} "
+                        f"uses deprecated/revoked techniques: " + ", ".join(f"{k} ({v})" for k, v in bad.items())
+                    )
+
 
 @unittest.skipIf(os.environ.get("DR_BYPASS_TAGS_VALIDATION") is not None, "Skipping tag validation")
 class TestRuleTags(BaseRuleTest):
@@ -414,8 +506,8 @@ class TestRuleTags(BaseRuleTest):
             "logs-okta*": {"all": ["Data Source: Okta"]},
             "logs-gcp*": {"all": ["Data Source: Google Cloud Platform", "Data Source: GCP", "Domain: Cloud"]},
             "logs-google_workspace*": {"all": ["Data Source: Google Workspace", "Domain: Cloud"]},
-            "logs-cloud_defend.alerts-*": {"all": ["Data Source: Elastic Defend for Containers", "Domain: Container"]},
-            "logs-cloud_defend*": {"all": ["Data Source: Elastic Defend for Containers", "Domain: Container"]},
+            "logs-cloud_defend.alerts-*": {"all": ["Data Source: Elastic Defend for Containers", "Domain: Containers"]},
+            "logs-cloud_defend*": {"all": ["Data Source: Elastic Defend for Containers", "Domain: Containers"]},
             "logs-kubernetes.*": {"all": ["Data Source: Kubernetes"]},
             "apm-*-transaction*": {"all": ["Data Source: APM"]},
             "traces-apm*": {"all": ["Data Source: APM"]},
@@ -488,11 +580,16 @@ class TestRuleTags(BaseRuleTest):
             if threat:
                 missing = []
                 threat_tactic_names = [e.tactic.name for e in threat]
-                primary_tactic = f"Tactic: {threat_tactic_names[0]}"
+
+                # Accept a primary-tactic tag matching the baseline or any versioned (e.g. v19)
+                # threat_mappings tactic name, since renamed tactics (e.g. Stealth) are still valid.
+                primary_tactic_candidates = {
+                    f"Tactic: {name}" for name in rule.contents.data.get_primary_tactic_names()
+                }
 
                 # missing primary tactic
-                if primary_tactic not in rule.contents.data.tags:
-                    missing.append(primary_tactic)
+                if not primary_tactic_candidates.intersection(rule.contents.data.tags):
+                    missing.append(" | ".join(sorted(primary_tactic_candidates)))
 
                 # listed tactic that is not in threat mapping
                 tag_tactics = set(rule_tags).intersection(tactics)
@@ -501,7 +598,7 @@ class TestRuleTags(BaseRuleTest):
                 if missing or missing_from_threat:
                     err_msg = self.rule_str(rule)
                     if missing:
-                        err_msg += f"\n    expected: {missing}"
+                        err_msg += f"\n    expected one of: {missing}"
                     if missing_from_threat:
                         err_msg += f"\n    unexpected (or missing from threat mapping): {missing_from_threat}"
 
@@ -563,6 +660,80 @@ class TestRuleTags(BaseRuleTest):
         if invalid:
             err_msg = "\n".join(invalid)
             self.fail(f"Rules with missing Investigation tag:\n{err_msg}")
+
+    def test_llm_completion_tag(self):
+        """Test that Resources: LLM is present on rules that use ES|QL COMPLETION."""
+        invalid = []
+        completion_re = re.compile(r"\|\s*COMPLETION\b", re.IGNORECASE)
+
+        for rule in self.all_rules:
+            query = rule.contents.data.get("query") or ""
+            if not completion_re.search(query):
+                continue
+            if "Resources: LLM" not in (rule.contents.data.tags or []):
+                err_msg = self.rule_str(rule)
+                err_msg += "\n    expected: Resources: LLM (ES|QL COMPLETION incurs token cost)"
+                invalid.append(err_msg)
+
+        if invalid:
+            err_msg = "\n".join(invalid)
+            self.fail(f"Rules with ES|QL COMPLETION missing Resources: LLM tag:\n{err_msg}")
+
+    def test_resources_llm_only_on_completion(self):
+        """Resources: LLM is the user-visible COMPLETION label; do not use it elsewhere."""
+        invalid = []
+        completion_re = re.compile(r"\|\s*COMPLETION\b", re.IGNORECASE)
+        for rule in self.all_rules:
+            tags = rule.contents.data.tags or []
+            if "Resources: LLM" not in tags:
+                continue
+            query = rule.contents.data.get("query") or ""
+            if not completion_re.search(query):
+                invalid.append(self.rule_str(rule))
+        if invalid:
+            self.fail("Resources: LLM is only for rules whose query uses ES|QL COMPLETION:\n" + "\n".join(invalid))
+
+    def test_genai_rules_have_mitre_atlas_tags(self):
+        """Domain: GenAI detections carry an ATLAS technique tag or a tactic-only mapping.
+
+        ES|QL COMPLETION rules are labeled Resources: LLM and are not GenAI-domain detections.
+        A tactic-only ``threat_mappings`` entry is enough when ATLAS has no technique yet.
+        """
+        invalid = []
+        completion_re = re.compile(r"\|\s*COMPLETION\b", re.IGNORECASE)
+        for rule in self.all_rules:
+            tags = rule.contents.data.tags or []
+            if "Domain: GenAI" not in tags:
+                continue
+            query = rule.contents.data.get("query") or ""
+            if completion_re.search(query):
+                invalid.append(f"{self.rule_str(rule)} has Domain: GenAI but invokes ES|QL COMPLETION")
+                continue
+            has_technique_tag = any(tag.startswith("Mitre Atlas:") for tag in tags)
+            has_atlas_mapping = any(
+                block.framework == "MITRE ATLAS" and block.threat for block in rule.contents.data.threat_mappings or []
+            )
+            if not has_technique_tag and not has_atlas_mapping:
+                invalid.append(f"{self.rule_str(rule)} missing Mitre Atlas tag or threat_mappings tactic")
+        if invalid:
+            self.fail(
+                "Domain: GenAI rules need an ATLAS technique tag or a tactic-only threat_mappings entry:\n"
+                + "\n".join(invalid)
+            )
+
+    def test_mitre_atlas_tags_match_data(self):
+        """Mitre Atlas tags must be real ATLAS technique IDs (not OWASP LLM Top 10 IDs)."""
+        invalid = []
+        for rule in self.all_rules:
+            for tag in rule.contents.data.tags or []:
+                if not tag.startswith("Mitre Atlas:"):
+                    continue
+                raw = tag.split(":", 1)[1].strip()
+                tid = atlas.canonical_technique_id(raw)
+                if tid not in atlas.technique_lookup:
+                    invalid.append(f"{self.rule_str(rule)} {tag} (canonical {tid})")
+        if invalid:
+            self.fail("Rules with unknown Mitre Atlas tags:\n" + "\n".join(invalid))
 
     def test_tag_prefix(self):
         """Ensure all tags have a prefix from an expected list."""
@@ -641,11 +812,14 @@ class TestRuleFiles(BaseRuleTest):
             authors = rule.contents.data.author
 
             if threat and "Elastic" in authors:
-                primary_tactic = threat[0].tactic.name
-                tactic_str = primary_tactic.lower().replace(" ", "_")
+                # Accept the baseline tactic name or any versioned (e.g. v19) threat_mappings tactic
+                # name, so a rule isn't forced to rename its file until it's actually migrated.
+                primary_tactics = rule.contents.data.get_primary_tactic_names()
+                tactic_strs = [t.lower().replace(" ", "_") for t in primary_tactics]
 
-                if tactic_str != filename[: len(tactic_str)]:
-                    bad_name_rules.append(f"{rule.id} - {Path(rule.path).name} -> expected: {tactic_str}")
+                if not any(filename.startswith(tactic_str) for tactic_str in tactic_strs):
+                    expected = " or ".join(tactic_strs)
+                    bad_name_rules.append(f"{rule.id} - {Path(rule.path).name} -> expected: {expected}")
 
         if bad_name_rules:
             error_msg = "filename does not start with the primary tactic - update the tactic or the rule filename"
@@ -801,7 +975,7 @@ class TestRuleMetadata(BaseRuleTest):
 
     @unittest.skipIf(os.getenv("GITHUB_EVENT_NAME") == "push", "Skipping this test when not running on pull requests.")
     def test_rule_change_has_updated_date(self):
-        """Test to ensure modified rules have updated_date field updated."""
+        """Pass when a modified rule bumps updated_date, is already today UTC, or omits it; else fail."""
 
         rules_path = get_path(["rules"])
         rules_bbr_path = get_path(["rules_building_block"])
@@ -820,16 +994,44 @@ class TestRuleMetadata(BaseRuleTest):
         if result:
             modified_rules = [path for path in result.splitlines() if path.endswith(".toml")]
             failed_rules = []
+            today_utc = datetime.now(UTC).date()
             for modified_rule_path in modified_rules:
                 diff_output = detection_rules_git("diff", "origin/main", modified_rule_path)
-                if not re.search(r"\+\s*updated_date =", diff_output):
-                    # Rule has been modified but updated_date has not been changed, add to list of failed rules
+                if re.search(r"^\+\s*updated_date\s*=", diff_output, re.MULTILINE):
+                    # updated_date has been modified in this PR
+                    continue
+
+                rule_path = get_path([modified_rule_path])
+                metadata = pytoml.loads(rule_path.read_text(encoding="utf-8")).get("metadata") or {}
+                if "updated_date" not in metadata:
+                    # Explicit updated_date was not found -> do not require a bump
+                    continue
+
+                updated_date = metadata["updated_date"]
+                if isinstance(updated_date, datetime):
+                    if updated_date.tzinfo is None:
+                        updated_date = updated_date.replace(tzinfo=UTC)
+                    updated_date = updated_date.astimezone(UTC).date()
+                elif isinstance(updated_date, date):
+                    pass
+                elif isinstance(updated_date, str):
+                    updated_date = date.fromisoformat(updated_date.replace("/", "-").split("T")[0])
+                else:
                     failed_rules.append(f"{modified_rule_path}")
+                    continue
+
+                # Same-day follow-up tunings may leave updated_date unchanged.
+                # Compare in UTC so evening local edits still match CI runners.
+                if updated_date == today_utc:
+                    continue
+
+                failed_rules.append(f"{modified_rule_path}")
 
             if failed_rules:
-                fail_msg = """
-                The following rules in the below path(s) have been modified but updated_date has not been changed \n
-                """
+                fail_msg = (
+                    "Modified rules must bump updated_date, already be today's UTC date, "
+                    "or omit metadata.updated_date. Failed:\n"
+                )
                 self.fail(fail_msg + "\n".join(failed_rules))
 
     @unittest.skipIf(
@@ -1029,10 +1231,12 @@ class TestRuleMetadata(BaseRuleTest):
             """,
         ]
 
+        # integration validation accepts only fields the package declares plus non-ecs-schema.json entries for the
+        # rule's index patterns, so the synthetic rules read the same google_workspace patterns real rules use
         base_fields_eql = {
             "author": ["Elastic"],
             "description": "test description",
-            "index": ["filebeat-*"],
+            "index": ["filebeat-*", "logs-google_workspace.drive-*"],
             "language": "eql",
             "license": "Elastic License v2",
             "name": "test rule",
@@ -1045,7 +1249,7 @@ class TestRuleMetadata(BaseRuleTest):
         base_fields_kql = {
             "author": ["Elastic"],
             "description": "test description",
-            "index": ["filebeat-*"],
+            "index": ["filebeat-*", "logs-google_workspace*"],
             "language": "kuery",
             "license": "Elastic License v2",
             "name": "test rule",
@@ -1543,6 +1747,9 @@ class TestAlertSuppression(BaseRuleTest):
                 beats_version = get_stack_schemas()[str(min_stack_version)]["beats"]
                 queryvalidator = QueryValidator(rule.contents.data.query)
                 _, _, schema = queryvalidator.get_beats_schema([], beats_version, ecs_version)
+                # copy: the returned schema is a memoized object shared by every caller, so updating it in place
+                # would leak this rule's integration fields into every later schema lookup in the test run
+                schema = dict(schema)
                 if integration_tag:
                     # if integration tag exists in rule, append integration schema to existing schema
                     # grabs the latest
@@ -1553,6 +1760,19 @@ class TestAlertSuppression(BaseRuleTest):
                         for data_source in int_schema:
                             schema.update(**int_schema[data_source])
                 for fld in group_by_fields:
+                    # ES|QL rules may suppress on dynamic fields computed by the query (e.g. EVAL/GROK
+                    # columns using the `Esql.` prefix convention), which are not in any schema. The field
+                    # must still be produced by the query: an assignment (EVAL/STATS/ENRICH ... WITH),
+                    # a RENAME ... AS target, or a GROK/DISSECT capture.
+                    if rule.contents.data.type == "esql" and fld.startswith(definitions.ESQL_DYNAMIC_FIELD_PREFIXES):
+                        field = re.escape(fld)
+                        self.assertRegex(
+                            rule.contents.data.query,
+                            rf"\b{field}\s*=(?!=)|\bAS\s+{field}\b|[:{{]{field}}}",
+                            f"{self.rule_str(rule)} alert suppression field {fld} is a dynamic "
+                            "ES|QL field but is not computed anywhere in the query",
+                        )
+                        continue
                     if fld not in schema:
                         self.fail(
                             f"{self.rule_str(rule)} alert suppression field {fld} not \
@@ -1617,7 +1837,6 @@ class TestEQLEventFieldUsage(BaseRuleTest):
 
     def test_process_fields_present_in_endpoint_schema(self):
         """Ensure process.* fields used in non-process EQL clauses exist in the endpoint integration schema."""
-        load_integrations_schemas.clear()
         schemas = load_integrations_schemas()
         endpoint_versions = schemas.get("endpoint", {})
         if not endpoint_versions:

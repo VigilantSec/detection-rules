@@ -33,15 +33,13 @@ from .exception import TOMLException, TOMLExceptionContents, build_exception_obj
 from .generic_loader import GenericCollection
 from .misc import (
     add_client,
-    getdefault,
     nested_set,
     parse_user_config,
     raise_client_error,
 )
-from .rule import DeprecatedRule, ESQLRuleData, QueryRuleData, RuleMeta, TOMLRule, TOMLRuleContents
+from .rule import DeprecatedRule, QueryRuleData, TOMLRule, TOMLRuleContents
 from .rule_formatter import toml_write
 from .rule_loader import RawRuleCollection, RuleCollection, update_metadata_from_file
-from .rule_validators import ESQLValidator
 from .schemas import all_versions, definitions, get_incompatible_fields, get_schema_file
 from .utils import (
     Ndjson,
@@ -172,12 +170,18 @@ def generate_rules_index(
 @click.option("--local-updated-date", "-lu", is_flag=True, help="Preserve the local updated date of the rule")
 @click.option("--dates-import", "-di", is_flag=True, help="Parse created_at and updated_at from the rule content")
 @click.option(
+    "--use-existing-rule-dirs",
     "--load-rule-loading",
     "-lr",
+    "use_existing_rule_dirs",
     is_flag=True,
-    help="Enable arbitrary rule loading from the rules directories (Can be very slow!)",
+    help=(
+        "Enable arbitrary rule loading from the rules directories (Can be very slow!). "
+        "This option was previously named --load-rule-loading; that name is kept as an alias "
+        "for backwards compatibility."
+    ),
 )
-def import_rules_into_repo(  # noqa: PLR0912, PLR0913, PLR0915
+def import_rules_into_repo(  # noqa: PLR0912, PLR0913, PLR0915, PLR0917
     input_file: tuple[Path, ...] | None,
     required_only: bool,
     action_connector_import: bool,
@@ -192,7 +196,7 @@ def import_rules_into_repo(  # noqa: PLR0912, PLR0913, PLR0915
     local_creation_date: bool,
     local_updated_date: bool,
     dates_import: bool,
-    load_rule_loading: bool,
+    use_existing_rule_dirs: bool,
 ) -> None:
     """Import rules from json, toml, or yaml files containing Kibana exported rule(s)."""
     errors: list[str] = []
@@ -216,7 +220,7 @@ def import_rules_into_repo(  # noqa: PLR0912, PLR0913, PLR0915
         click.echo("Must specify at least one file!")
 
     raw_rule_collection = RawRuleCollection()
-    if load_rule_loading:
+    if use_existing_rule_dirs:
         raw_rule_collection = raw_rule_collection.default()
 
     exceptions_containers = {}
@@ -252,7 +256,7 @@ def import_rules_into_repo(  # noqa: PLR0912, PLR0913, PLR0915
         additional = ["index"] if not data_view_id else ["data_view_id"]
 
         # Use additional to store all available fields for the rule
-        additional += [key for key in contents if key not in additional and contents.get(key, None)]
+        additional += [key for key in contents if key not in additional and contents.get(key) is not None]
 
         # use default author if not provided
         contents["author"] = contents.get("author") or default_author or [contents.get("created_by")]
@@ -489,21 +493,10 @@ def mass_update(
 @root.command("view-rule")
 @click.argument("rule-file", type=Path)
 @click.option("--api-format/--rule-format", default=True, help="Print the rule in final api or rule format")
-@click.option("--esql-remote-validation", is_flag=True, default=False, help="Enable remote validation for the rule")
 @click.pass_context
-def view_rule(
-    _: click.Context, rule_file: Path, api_format: str, esql_remote_validation: bool
-) -> TOMLRule | DeprecatedRule:
+def view_rule(_: click.Context, rule_file: Path, api_format: str) -> TOMLRule | DeprecatedRule:
     """View an internal rule or specified rule file."""
     rule = RuleCollection().load_file(rule_file)
-    if (
-        esql_remote_validation
-        and isinstance(rule.contents.data, ESQLRuleData)
-        and isinstance(rule.contents.data.validator, ESQLValidator)
-        and isinstance(rule.contents.metadata, RuleMeta)
-        and not getdefault("remote_esql_validation")()
-    ):
-        rule.contents.data.validator.validate(rule.contents.data, rule.contents.metadata, force_remote_validation=True)
 
     if api_format:
         click.echo(json.dumps(rule.contents.to_api_format(), indent=2, sort_keys=True))
@@ -513,7 +506,7 @@ def view_rule(
     return rule
 
 
-def _export_rules_as_yaml(  # noqa: PLR0913
+def _export_rules_as_yaml(  # noqa: PLR0913, PLR0917
     rules: RuleCollection,
     yaml_directory: Path,
     downgrade_version: definitions.SemVer | None = None,
@@ -567,7 +560,7 @@ def _export_rules_as_yaml(  # noqa: PLR0913
             click.echo(f"Skipped {len(unsupported)} unsupported rules: \n- {unsupported_str}")
 
 
-def _export_rules(  # noqa: PLR0913
+def _export_rules(  # noqa: PLR0913, PLR0917
     rules: RuleCollection,
     outfile: Path,
     downgrade_version: definitions.SemVer | None = None,
@@ -673,7 +666,7 @@ def _export_rules(  # noqa: PLR0913
     required=False,
     help="Optional directory to export individual YAML files instead of NDJSON",
 )
-def export_rules_from_repo(  # noqa: PLR0913
+def export_rules_from_repo(  # noqa: PLR0913, PLR0917
     rules: RuleCollection,
     outfile: Path,
     replace_id: bool,
@@ -747,7 +740,7 @@ def validate_all() -> None:
 @click.option("--columns", "-c", multiple=True, help="Specify columns to add the table")
 @click.option("--language", type=click.Choice(["eql", "kql"]), default="kql")
 @click.option("--count", is_flag=True, help="Return a count rather than table")
-def search_rules(  # noqa: PLR0913
+def search_rules(  # noqa: PLR0913, PLR0917
     query: str | None,
     columns: list[str],
     language: Literal["eql", "kql"],
