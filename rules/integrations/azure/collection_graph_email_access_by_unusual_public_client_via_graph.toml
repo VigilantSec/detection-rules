@@ -82,6 +82,7 @@ tags = [
     "Domain: Identity",
     "vigilant.alerting.initial_access",
     "vigilant.alerting.high_risk",
+    "vigilant.filter.phishing_resistant",
     "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
@@ -139,6 +140,7 @@ reference = "https://attack.mitre.org/tactics/TA0005/"
 field = "new_terms_fields"
 value = [
     "azure.graphactivitylogs.properties.app_id",
+    "tenant.slug",
 ]
 [[rule.new_terms.history_window_start]]
 field = "history_window_start"
