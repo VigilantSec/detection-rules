@@ -68,6 +68,7 @@ tags = [
     "Threat: Living off the Land",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
+    "vigilant.disabled",
 ]
 type = "eql"
 
