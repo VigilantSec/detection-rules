@@ -30,6 +30,8 @@ tags = [
     "Performance: Normal",
     "Rule Type: Event Correlation (EQL)",
     "Platform: macOS",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.high_risk",
 ]
 type = "eql"
 note = """## Triage and analysis

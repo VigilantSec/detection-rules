@@ -30,6 +30,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: ES|QL",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 type = "esql"
 note = """## Triage and analysis

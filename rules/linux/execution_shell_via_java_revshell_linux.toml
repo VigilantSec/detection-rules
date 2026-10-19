@@ -92,6 +92,7 @@ tags = [
     "Threat: Reverse Shell",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 type = "eql"
 query = '''

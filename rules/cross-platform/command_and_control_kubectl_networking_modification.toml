@@ -109,6 +109,7 @@ tags = [
     "Platform: Linux",
     "Platform: macOS",
     "Platform: Kubernetes",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

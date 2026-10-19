@@ -77,6 +77,8 @@ tags = [
     "Platform: macOS",
     "Mitre Atlas: AML.T0053",
     "Mitre Atlas: AML.T0108",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

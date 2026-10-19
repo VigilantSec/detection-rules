@@ -78,6 +78,8 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Custom Query (KQL)",
     "Platform: GCP",
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"

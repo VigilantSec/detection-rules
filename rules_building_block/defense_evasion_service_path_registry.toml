@@ -31,6 +31,7 @@ tags = [
     "Data Source: Sysmon",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

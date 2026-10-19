@@ -58,6 +58,7 @@ tags = [
     "Rule Type: BBR",
     "Rule Type: ES|QL",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

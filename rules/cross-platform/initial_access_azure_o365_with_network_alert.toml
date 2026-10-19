@@ -80,6 +80,7 @@ tags = [
     "Domain: Identity",
     "Platform: Microsoft 365",
     "Domain: Email",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

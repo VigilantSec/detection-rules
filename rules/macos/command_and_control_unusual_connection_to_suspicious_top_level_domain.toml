@@ -66,6 +66,7 @@ tags = [
     "Threat: Suspicious TLD",
     "Rule Type: New Terms",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

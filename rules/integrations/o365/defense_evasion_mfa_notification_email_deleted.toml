@@ -72,6 +72,7 @@ tags = [
     "Platform: Microsoft 365",
     "Domain: Email",
     "Service: Microsoft Exchange Online",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

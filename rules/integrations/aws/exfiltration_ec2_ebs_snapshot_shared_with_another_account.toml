@@ -115,6 +115,8 @@ tags = [
     "Platform: AWS",
     "Data Source: AWS CloudTrail",
     "Service: AWS EC2",
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

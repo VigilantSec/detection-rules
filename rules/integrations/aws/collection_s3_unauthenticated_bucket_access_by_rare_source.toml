@@ -107,8 +107,7 @@ tags = [
     "Platform: AWS",
     "Data Source: AWS CloudTrail",
     "Service: AWS S3",
-    "vigilant.alerting.exfil",
-    "vigilant.alerting.high_risk",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

@@ -161,6 +161,7 @@ tags = [
     "Rule Type: New Terms",
     "Platform: Linux",
     "Resources: Osquery",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

@@ -107,6 +107,8 @@ tags = [
     "Performance: Normal",
     "Profile: Aggressive",
     "Threat: Ransomware",
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

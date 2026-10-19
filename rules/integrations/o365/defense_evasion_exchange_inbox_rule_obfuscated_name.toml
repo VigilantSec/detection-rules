@@ -74,6 +74,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Microsoft 365",
     "Service: Microsoft Exchange Online",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

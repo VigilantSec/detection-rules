@@ -145,6 +145,7 @@ tags = [
     "Tactic: Command and Control",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",
+    "vigilant.disabled",
 ]
 type = "eql"
 

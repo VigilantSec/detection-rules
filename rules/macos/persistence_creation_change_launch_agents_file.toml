@@ -59,6 +59,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Event Correlation (EQL)",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 type = "eql"
 

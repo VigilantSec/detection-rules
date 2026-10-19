@@ -117,6 +117,7 @@ tags = [
     "Platform: AWS",
     "Data Source: AWS CloudTrail",
     "Service: AWS S3",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

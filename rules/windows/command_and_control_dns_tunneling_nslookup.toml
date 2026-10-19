@@ -100,6 +100,7 @@ tags = [
     "Threat: Protocol Tunneling",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
+    "vigilant.disabled",
 ]
 type = "eql"
 

@@ -34,6 +34,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Threshold",
     "Data Source: Network Packet Capture",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "threshold"

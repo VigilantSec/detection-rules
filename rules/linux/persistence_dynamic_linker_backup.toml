@@ -166,6 +166,7 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
     "Resources: Osquery",
+    "vigilant.disabled",
 ]
 type = "eql"
 query = '''

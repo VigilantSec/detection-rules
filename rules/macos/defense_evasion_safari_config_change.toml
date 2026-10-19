@@ -57,6 +57,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Event Correlation (EQL)",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

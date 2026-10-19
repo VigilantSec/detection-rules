@@ -45,6 +45,7 @@ tags = [
     "Rule Type: Custom Query (KQL)",
     "Platform: Microsoft 365",
     "Service: Microsoft Purview",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"

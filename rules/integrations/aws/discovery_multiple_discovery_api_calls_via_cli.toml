@@ -145,6 +145,9 @@ tags = [
     "Service: AWS STS",
     "Service: AWS SES",
     "Service: AWS DynamoDB",
+    "vigilant.alerting.recon",
+    "vigilant.alerting.high_risk",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

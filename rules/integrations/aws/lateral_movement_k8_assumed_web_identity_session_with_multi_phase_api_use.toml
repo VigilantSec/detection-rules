@@ -95,6 +95,7 @@ tags = [
     "Platform: AWS",
     "Service: AWS IAM",
     "Service: AWS STS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

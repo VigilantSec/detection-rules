@@ -180,6 +180,7 @@ tags = [
     "Platform: Linux",
     "Data Source: Network Packet Capture",
     "Resources: Osquery",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

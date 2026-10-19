@@ -78,6 +78,8 @@ tags = [
     "Platform: Microsoft 365",
     "Domain: SaaS",
     "Service: Microsoft Exchange Online",
+    "vigilant.alerting.exfil",
+    "vigilant.alerting.passthrough",
 ]
 timestamp_override = "event.ingested"
 type = "query"

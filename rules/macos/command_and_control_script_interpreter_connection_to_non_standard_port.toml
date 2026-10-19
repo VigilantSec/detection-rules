@@ -66,6 +66,8 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Event Correlation (EQL)",
     "Platform: macOS",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.passthrough",
 ]
 type = "eql"
 query = '''

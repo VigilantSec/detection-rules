@@ -94,6 +94,7 @@ tags = [
     "Threat: Web Shell",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

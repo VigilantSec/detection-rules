@@ -62,6 +62,7 @@ tags = [
     "Rule Type: ES|QL",
     "Mitre Atlas: AML.T0053",
     "Mitre Atlas: AML.T0011",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

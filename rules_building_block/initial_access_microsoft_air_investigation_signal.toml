@@ -43,6 +43,7 @@ tags = [
     "Rule Type: BBR",
     "Rule Type: Custom Query (KQL)",
     "Platform: Microsoft 365",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"

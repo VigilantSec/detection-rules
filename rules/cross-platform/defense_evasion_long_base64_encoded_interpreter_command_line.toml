@@ -65,6 +65,7 @@ tags = [
     "Platform: Windows",
     "Platform: Linux",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

@@ -85,6 +85,7 @@ tags = [
     "Rule Type: New Terms",
     "Platform: Google Workspace",
     "Domain: SaaS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

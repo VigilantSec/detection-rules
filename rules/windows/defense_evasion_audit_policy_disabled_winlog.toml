@@ -71,6 +71,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: ES|QL",
     "Platform: Windows",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

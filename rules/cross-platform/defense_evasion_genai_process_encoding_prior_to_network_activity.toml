@@ -83,6 +83,8 @@ tags = [
     "Platform: macOS",
     "Domain: GenAI",
     "Mitre Atlas: AML.T0086",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "eql"
