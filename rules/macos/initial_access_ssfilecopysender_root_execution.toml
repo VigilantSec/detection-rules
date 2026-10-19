@@ -98,6 +98,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: macOS",
     "Vuln: CVE-2026-65400",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

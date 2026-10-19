@@ -115,6 +115,7 @@ tags = [
     "Data Source: Network Packet Capture",
     "Data Source: Network Traffic",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

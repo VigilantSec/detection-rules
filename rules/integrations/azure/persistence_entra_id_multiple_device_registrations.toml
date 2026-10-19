@@ -94,6 +94,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: ES|QL",
     "Platform: Entra ID",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

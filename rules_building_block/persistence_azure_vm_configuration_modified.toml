@@ -47,6 +47,7 @@ tags = [
     "Rule Type: BBR",
     "Rule Type: Custom Query (KQL)",
     "Platform: Azure",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

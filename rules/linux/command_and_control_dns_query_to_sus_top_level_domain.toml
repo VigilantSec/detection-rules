@@ -67,6 +67,7 @@ tags = [
     "Performance: Normal",
     "Profile: Aggressive",
     "Threat: Suspicious TLD",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

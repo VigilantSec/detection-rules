@@ -81,6 +81,7 @@ tags = [
     "Tactic: Credential Access",
     "Data Source: Elastic Defend",
     "Rule Type: BBR",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

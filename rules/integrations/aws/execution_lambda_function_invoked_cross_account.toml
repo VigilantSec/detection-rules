@@ -79,6 +79,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: AWS",
     "Service: AWS Lambda",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

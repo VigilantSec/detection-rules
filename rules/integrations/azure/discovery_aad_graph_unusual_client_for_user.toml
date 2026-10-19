@@ -96,6 +96,7 @@ tags = [
     "Platform: Entra ID",
     "Platform: Azure",
     "Domain: Identity",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

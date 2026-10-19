@@ -73,6 +73,7 @@ tags = [
     "Profile: Recommended",
     "Threat: Ransomware",
     "Rule Type: ES|QL",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

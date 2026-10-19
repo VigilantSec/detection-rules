@@ -91,6 +91,7 @@ tags = [
     "Rule Type: New Terms",
     "Platform: Microsoft 365",
     "Domain: Email",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

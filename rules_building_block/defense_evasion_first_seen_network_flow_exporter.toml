@@ -84,6 +84,7 @@ tags = [
     "Data Source: GoFlow2",
     "Resources: Investigation Guide",
     "Rule Type: ES|QL",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

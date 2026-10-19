@@ -74,6 +74,7 @@ tags = [
     "Profile: Recommended",
     "Threat: Ransomware",
     "Rule Type: Custom Query (KQL)",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

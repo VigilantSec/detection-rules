@@ -63,6 +63,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
+    "vigilant.unreviewed",
 ]
 type = "eql"
 query = '''

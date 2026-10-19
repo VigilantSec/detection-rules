@@ -105,6 +105,7 @@ tags = [
     "Resources: Investigation Guide",
     "Data Source: Elastic Defend",
     "Rule Type: New Terms",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

@@ -91,6 +91,7 @@ tags = [
     "Service: AWS IoT",
     "Rule Type: Event Correlation (EQL)",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

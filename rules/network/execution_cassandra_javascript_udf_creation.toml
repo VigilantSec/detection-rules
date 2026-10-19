@@ -77,6 +77,7 @@ tags = [
     "Threat: Vulnerability Exploit",
     "Rule Type: Event Correlation (EQL)",
     "Vuln: CVE-2021-44521",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

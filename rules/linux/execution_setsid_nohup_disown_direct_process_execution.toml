@@ -101,6 +101,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: New Terms",
     "Platform: Linux",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

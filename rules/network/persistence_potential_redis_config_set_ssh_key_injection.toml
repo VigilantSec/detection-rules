@@ -91,6 +91,7 @@ tags = [
     "Performance: Fast",
     "Profile: Recommended",
     "Rule Type: Event Correlation (EQL)",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

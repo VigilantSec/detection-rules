@@ -74,6 +74,7 @@ tags = [
     "Threat: Cryptomining",
     "Rule Type: ES|QL",
     "Platform: AWS",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

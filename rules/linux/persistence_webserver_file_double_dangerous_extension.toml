@@ -87,6 +87,7 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Resources: Investigation Guide",
     "Platform: Linux",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

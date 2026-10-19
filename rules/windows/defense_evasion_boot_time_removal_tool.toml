@@ -89,6 +89,7 @@ tags = [
     "Data Source: Elastic Defend",
     "Rule Type: ES|QL",
     "Platform: Windows",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

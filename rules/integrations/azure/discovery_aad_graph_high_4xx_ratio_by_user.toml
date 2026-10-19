@@ -86,6 +86,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Entra ID",
     "Domain: Identity",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
