@@ -69,6 +69,7 @@ tags = [
     "Performance: Fast",
     "Rule Type: Custom Query (KQL)",
     "Data Source: Network Packet Capture",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

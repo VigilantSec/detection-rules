@@ -105,6 +105,7 @@ tags = [
     "Data Source: Zeek",
     "Rule Type: New Terms",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

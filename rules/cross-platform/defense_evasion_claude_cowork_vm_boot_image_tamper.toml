@@ -76,6 +76,7 @@ tags = [
     "Domain: GenAI",
     "Mitre Atlas: AML.T0097",
     "Mitre Atlas: AML.T0105",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

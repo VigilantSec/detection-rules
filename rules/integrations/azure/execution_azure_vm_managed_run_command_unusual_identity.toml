@@ -87,6 +87,7 @@ tags = [
     "Threat: Cloud VM Execution",
     "Rule Type: New Terms",
     "Platform: Azure",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

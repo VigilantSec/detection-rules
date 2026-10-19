@@ -86,6 +86,7 @@ tags = [
     "Threat: Cloud VM Execution",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

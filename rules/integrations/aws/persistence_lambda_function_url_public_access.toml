@@ -78,6 +78,7 @@ tags = [
     "Resources: Investigation Guide",
     "Noise: Low",
     "Performance: Normal",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

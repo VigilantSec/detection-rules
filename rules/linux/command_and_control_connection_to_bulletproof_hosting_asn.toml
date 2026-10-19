@@ -93,6 +93,7 @@ tags = [
     "Tactic: Execution",
     "Data Source: Elastic Defend",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

@@ -97,6 +97,7 @@ tags = [
     "Threat: AiTM Phishing",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Entra ID",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

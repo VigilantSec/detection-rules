@@ -72,6 +72,7 @@ tags = [
     "Noise: Unknown",
     "Performance: Normal",
     "Rule Type: Event Correlation (EQL)",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

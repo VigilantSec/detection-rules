@@ -82,6 +82,7 @@ tags = [
     "Platform: AWS",
     "Data Source: AWS CloudTrail",
     "Service: AWS KMS",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

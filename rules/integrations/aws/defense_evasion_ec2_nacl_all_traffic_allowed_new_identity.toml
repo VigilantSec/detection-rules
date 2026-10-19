@@ -76,6 +76,7 @@ tags = [
     "Platform: AWS",
     "Data Source: AWS CloudTrail",
     "Service: AWS EC2",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

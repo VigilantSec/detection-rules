@@ -103,6 +103,7 @@ tags = [
     "Data Source: Sysmon",
     "Data Source: Microsoft Defender XDR",
     "Data Source: Crowdstrike",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

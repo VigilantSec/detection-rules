@@ -71,6 +71,7 @@ tags = [
     "Domain: GenAI",
     "Mitre Atlas: AML.T0012",
     "Mitre Atlas: AML.T0103",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

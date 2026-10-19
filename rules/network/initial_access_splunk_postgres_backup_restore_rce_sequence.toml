@@ -123,6 +123,7 @@ tags = [
     "Threat: Vulnerability Exploit",
     "Rule Type: ES|QL",
     "Vuln: CVE-2026-20253",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

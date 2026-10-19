@@ -75,6 +75,7 @@ tags = [
     "Platform: GCP",
     "Domain: Containers",
     "Platform: Kubernetes",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

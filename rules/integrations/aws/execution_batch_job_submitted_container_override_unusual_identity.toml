@@ -72,6 +72,7 @@ tags = [
     "Rule Type: New Terms",
     "Platform: AWS",
     "Data Source: AWS CloudTrail",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

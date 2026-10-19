@@ -95,6 +95,7 @@ tags = [
     "Service: AWS Bedrock",
     "Mitre Atlas: AML.T0007",
     "Mitre Atlas: AML.T0040",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

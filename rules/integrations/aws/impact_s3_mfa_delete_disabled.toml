@@ -69,6 +69,7 @@ tags = [
     "Rule Type: Custom Query (KQL)",
     "Tactic: Impact",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

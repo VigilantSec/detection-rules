@@ -81,6 +81,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Google Workspace",
     "Domain: SaaS",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

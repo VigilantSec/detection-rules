@@ -81,6 +81,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: Custom Query (KQL)",
     "Platform: Entra ID",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

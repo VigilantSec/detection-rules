@@ -100,6 +100,7 @@ tags = [
     "Data Source: SentinelOne",
     "Rule Type: Custom Query (KQL)",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

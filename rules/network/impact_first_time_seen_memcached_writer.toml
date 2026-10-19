@@ -83,6 +83,7 @@ tags = [
     "Threat: Vulnerability Exploit",
     "Rule Type: New Terms",
     "Vuln: CVE-2026-29093",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

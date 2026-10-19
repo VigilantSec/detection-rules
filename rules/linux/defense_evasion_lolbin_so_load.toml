@@ -103,6 +103,7 @@ tags = [
     "Threat: Living off the Land",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

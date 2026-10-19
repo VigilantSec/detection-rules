@@ -110,6 +110,7 @@ tags = [
     "Domain: SaaS",
     "Data Source: Zoom",
     "Vuln: CVE-2026-53413",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

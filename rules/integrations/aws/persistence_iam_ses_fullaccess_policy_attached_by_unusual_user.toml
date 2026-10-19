@@ -80,6 +80,7 @@ tags = [
     "Tactic: Resource Development",
     "Resources: Investigation Guide",
     "Data Source: AWS CloudTrail",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

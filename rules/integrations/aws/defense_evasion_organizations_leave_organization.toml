@@ -92,6 +92,7 @@ tags = [
     "Rule Type: Custom Query (KQL)",
     "Platform: AWS",
     "Service: AWS Organizations",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

@@ -85,6 +85,7 @@ tags = [
     "Performance: Fast",
     "Profile: Recommended",
     "Threat: Unauthorized AI Usage",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

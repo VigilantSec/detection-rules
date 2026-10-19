@@ -104,6 +104,7 @@ tags = [
     "Data Source: SentinelOne",
     "Resources: Investigation Guide",
     "Rule Type: Event Correlation (EQL)",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

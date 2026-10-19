@@ -89,6 +89,7 @@ tags = [
     "Profile: Recommended",
     "Threat: Cryptomining",
     "Rule Type: Event Correlation (EQL)",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

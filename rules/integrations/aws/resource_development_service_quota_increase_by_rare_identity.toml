@@ -65,6 +65,7 @@ tags = [
     "Rule Type: New Terms",
     "Tactic: Resource Development",
     "Resources: Investigation Guide",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

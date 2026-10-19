@@ -65,6 +65,7 @@ tags = [
     "Rule Type: ES|QL",
     "Threat: Supply Chain",
     "Threat: Download Tool Abuse",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

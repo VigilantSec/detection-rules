@@ -55,6 +55,7 @@ tags = [
     "Vuln: CVE-2026-90894",
     "Resources: Investigation Guide",
     "Use Case: Vulnerability",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

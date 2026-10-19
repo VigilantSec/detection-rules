@@ -91,6 +91,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Custom Query (KQL)",
     "Platform: AWS",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

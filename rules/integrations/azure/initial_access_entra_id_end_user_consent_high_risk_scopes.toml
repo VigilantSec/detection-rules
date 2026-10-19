@@ -93,6 +93,7 @@ tags = [
     "Tactic: Initial Access",
     "Tactic: Credential Access",
     "Rule Type: ES|QL",
+    "vigilant.unreviewed",
 ]
 type = "esql"
 

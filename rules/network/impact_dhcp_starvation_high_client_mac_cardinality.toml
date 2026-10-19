@@ -76,6 +76,7 @@ tags = [
     "Performance: Fast",
     "Rule Type: ES|QL",
     "Data Source: Network Packet Capture",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

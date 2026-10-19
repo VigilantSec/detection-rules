@@ -80,6 +80,7 @@ tags = [
     "Domain: GenAI",
     "Service: AWS Bedrock",
     "Mitre Atlas: AML.T0012",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
