@@ -43,6 +43,7 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 type = "eql"
 
