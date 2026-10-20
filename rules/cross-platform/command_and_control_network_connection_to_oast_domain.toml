@@ -42,6 +42,7 @@ tags = [
     "Platform: macOS",
     "Platform: Windows",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 type = "eql"
 note = """## Triage and analysis

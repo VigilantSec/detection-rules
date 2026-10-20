@@ -104,6 +104,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: AWS",
     "Service: AWS S3",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

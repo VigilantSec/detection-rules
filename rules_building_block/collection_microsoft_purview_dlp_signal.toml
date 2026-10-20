@@ -47,6 +47,7 @@ tags = [
     "Platform: Microsoft 365",
     "Domain: Email",
     "Service: Microsoft Purview",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"

@@ -91,6 +91,10 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: ES|QL",
     "Platform: Entra ID",
+    "vigilant.alerting.initial_access",
+    "vigilant.alerting.high_risk",
+    "vigilant.prefilter.trusted_ip",
+    "vigilant.filter.phishing_resistant",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

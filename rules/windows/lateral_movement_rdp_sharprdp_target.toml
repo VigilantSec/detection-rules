@@ -34,6 +34,8 @@ tags = [
     "Performance: Normal",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.high_risk",
 ]
 type = "eql"
 

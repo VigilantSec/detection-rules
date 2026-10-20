@@ -74,6 +74,7 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
     "Vuln: CVE-2022-0492",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

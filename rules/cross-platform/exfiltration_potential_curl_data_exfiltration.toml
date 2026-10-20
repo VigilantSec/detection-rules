@@ -115,6 +115,7 @@ tags = [
     "Platform: Windows",
     "Platform: Linux",
     "Platform: macOS",
+    "vigilant.alerting.endpoint",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

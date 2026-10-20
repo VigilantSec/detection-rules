@@ -34,6 +34,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: ES|QL",
     "Data Source: Network Packet Capture",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

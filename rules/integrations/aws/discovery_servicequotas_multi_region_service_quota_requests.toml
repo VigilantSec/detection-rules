@@ -87,6 +87,9 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: ES|QL",
     "Platform: AWS",
+    "vigilant.alerting.recon",
+    "vigilant.alerting.passthrough",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

@@ -162,6 +162,8 @@ tags = [
     "Platform: AWS",
     "Service: AWS S3",
     "Service: AWS KMS",
+    "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

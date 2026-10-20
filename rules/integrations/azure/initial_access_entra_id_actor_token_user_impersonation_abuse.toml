@@ -84,6 +84,9 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Entra ID",
     "Vuln: CVE-2025-55241",
+    "vigilant.alerting.initial_access",
+    "vigilant.alerting.passthrough",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

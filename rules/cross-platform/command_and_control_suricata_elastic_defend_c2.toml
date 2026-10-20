@@ -41,6 +41,7 @@ tags = [
     "Platform: Windows",
     "Platform: Linux",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 type = "eql"
 query = '''

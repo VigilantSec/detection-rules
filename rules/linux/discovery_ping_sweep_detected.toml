@@ -103,6 +103,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Threshold",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "threshold"

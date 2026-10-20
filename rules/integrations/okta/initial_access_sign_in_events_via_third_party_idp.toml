@@ -79,6 +79,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: New Terms",
     "Platform: Okta",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

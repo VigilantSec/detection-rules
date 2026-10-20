@@ -68,6 +68,7 @@ tags = [
     "Service: IIS",
     "Service: Apache Tomcat",
     "Service: Apache HTTP Server",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

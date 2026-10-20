@@ -66,6 +66,10 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Microsoft 365",
     "Service: Microsoft SharePoint",
+    "vigilant.alerting.exfil",
+    "vigilant.alerting.high_risk",
+    "vigilant.prefilter.trusted_ip",
+    "vigilant.filter.phishing_resistant",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

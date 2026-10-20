@@ -138,6 +138,7 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
     "Resources: Osquery",
+    "vigilant.disabled",
 ]
 type = "eql"
 

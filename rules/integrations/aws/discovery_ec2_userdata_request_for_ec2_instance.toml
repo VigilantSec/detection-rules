@@ -83,6 +83,8 @@ tags = [
     "Noise: High",
     "Performance: Normal",
     "Profile: Aggressive",
+    "vigilant.alerting.recon",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

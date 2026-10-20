@@ -102,6 +102,9 @@ tags = [
     "Platform: AWS",
     "Service: AWS EC2",
     "Service: AWS SSM",
+    "vigilant.alerting.initial_access",
+    "vigilant.alerting.high_risk",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

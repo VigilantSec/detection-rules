@@ -95,6 +95,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 type = "eql"
 query = '''

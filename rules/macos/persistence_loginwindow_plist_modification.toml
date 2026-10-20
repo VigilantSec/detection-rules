@@ -59,6 +59,7 @@ tags = [
     "Profile: Aggressive",
     "Rule Type: Custom Query (KQL)",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"

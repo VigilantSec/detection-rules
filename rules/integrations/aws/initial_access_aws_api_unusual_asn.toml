@@ -80,6 +80,7 @@ tags = [
     "Performance: Slow",
     "Rule Type: ES|QL",
     "Platform: AWS",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

@@ -83,6 +83,7 @@ tags = [
     "Rule Type: Threshold",
     "Platform: Azure",
     "Service: Azure Storage",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "threshold"

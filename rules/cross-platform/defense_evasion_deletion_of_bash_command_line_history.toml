@@ -77,6 +77,8 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Linux",
     "Platform: macOS",
+    "vigilant.alerting.endpoint",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

@@ -149,6 +149,7 @@ tags = [
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
     "Resources: Osquery",
+    "vigilant.disabled",
 ]
 timeline_id = "e70679c2-6cde-4510-9764-4823df18f7db"
 timeline_title = "Comprehensive Process Timeline"

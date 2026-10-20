@@ -73,6 +73,7 @@ tags = [
     "Rule Type: Custom Query (KQL)",
     "Domain: Network",
     "Data Source: Network Packet Capture",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "query"

@@ -57,6 +57,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: New Terms",
     "Platform: Linux",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

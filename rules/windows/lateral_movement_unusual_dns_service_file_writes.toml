@@ -83,8 +83,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: New Terms",
     "Platform: Windows",
-    "vigilant.alerting.endpoint",
-    "vigilant.alerting.passthrough",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"

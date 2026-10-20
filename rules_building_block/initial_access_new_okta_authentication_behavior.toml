@@ -66,6 +66,8 @@ tags = [
     "Domain: Identity",
     "Rule Type: Custom Query (KQL)",
     "Platform: Okta",
+    "vigilant.alerting.initial_access",
+    "vigilant.alerting.high_risk",
 ]
 timestamp_override = "event.ingested"
 type = "query"

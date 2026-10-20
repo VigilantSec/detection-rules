@@ -81,6 +81,7 @@ tags = [
     "Threat: DLL Side-Load",
     "Rule Type: Event Correlation (EQL)",
     "Platform: Windows",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

@@ -63,6 +63,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Linux",
     "Platform: macOS",
+    "vigilant.disabled",
 ]
 type = "esql"
 query = '''
