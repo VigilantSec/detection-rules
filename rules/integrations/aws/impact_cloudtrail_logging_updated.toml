@@ -78,6 +78,7 @@ tags = [
     "Performance: Normal",
     "vigilant.alerting.high_risk",
     "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.filter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "query"

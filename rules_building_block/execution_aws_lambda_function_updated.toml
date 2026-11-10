@@ -46,6 +46,7 @@ tags = [
     "Rule Type: Custom Query (KQL)",
     "vigilant.alerting.sensitive_environment_changes",
     "vigilant.alerting.high_risk",
+    "vigilant.filter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "query"
