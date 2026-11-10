@@ -112,6 +112,7 @@ tags = [
     "Domain: SaaS",
     "vigilant.alerting.high_risk",
     "vigilant.alerting.sensitive_environment_changes",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "query"

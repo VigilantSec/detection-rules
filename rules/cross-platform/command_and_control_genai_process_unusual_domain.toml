@@ -73,6 +73,7 @@ tags = [
     "Platform: macOS",
     "Domain: GenAI",
     "Mitre Atlas: AML.T0072",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
