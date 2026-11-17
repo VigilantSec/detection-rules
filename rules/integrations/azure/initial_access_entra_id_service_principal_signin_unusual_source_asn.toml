@@ -88,6 +88,7 @@ tags = [
     "Performance: Normal",
     "Rule Type: New Terms",
     "Platform: Entra ID",
+    "vigilant.disabled",
 ]
 timestamp_override = "event.ingested"
 type = "new_terms"
