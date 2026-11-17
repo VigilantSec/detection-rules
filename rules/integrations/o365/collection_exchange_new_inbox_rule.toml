@@ -89,6 +89,8 @@ tags = [
     "vigilant.alerting.passthrough",
     "vigilant.alerting.exfil",
     "vigilant.prefilter.trusted_ip",
+    "vigilant.disabled",
+    "DISABLED.NOTE - Rule directly overlaps with VSEC version (b0435aca-20df-43e4-931f-fe0216d7ca65)",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

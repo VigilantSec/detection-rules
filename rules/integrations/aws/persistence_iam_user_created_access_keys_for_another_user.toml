@@ -124,6 +124,7 @@ tags = [
     "Performance: Normal",
     "vigilant.alerting.persistence",
     "vigilant.alerting.passthrough",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
