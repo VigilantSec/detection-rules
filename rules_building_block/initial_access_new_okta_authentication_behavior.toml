@@ -68,12 +68,14 @@ tags = [
     "Platform: Okta",
     "vigilant.alerting.initial_access",
     "vigilant.alerting.high_risk",
+    "vigilant.prefilter.trusted_ip",
 ]
 timestamp_override = "event.ingested"
 type = "query"
 
 query = '''
 event.dataset:okta.system and okta.debug_context.debug_data.risk_behaviors:*
+AND NOT okta.actor.type: "PublicClientApp"
 '''
 
 
