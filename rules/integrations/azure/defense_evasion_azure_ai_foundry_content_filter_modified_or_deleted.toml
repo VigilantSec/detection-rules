@@ -87,6 +87,7 @@ tags = [
     "Tactic: Defense Evasion",
     "Resources: Investigation Guide",
     "Rule Type: Custom Query (KQL)",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

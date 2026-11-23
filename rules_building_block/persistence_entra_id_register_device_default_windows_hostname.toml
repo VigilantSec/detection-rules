@@ -90,6 +90,7 @@ tags = [
     "Rule Type: BBR",
     "Rule Type: Custom Query (KQL)",
     "Threat: AiTM Phishing",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

@@ -96,6 +96,7 @@ tags = [
     "Threat: Container Escape",
     "Resources: Investigation Guide",
     "Profile: Beta",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "query"

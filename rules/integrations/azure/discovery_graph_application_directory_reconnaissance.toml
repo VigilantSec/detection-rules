@@ -80,6 +80,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Microsoft Graph",
     "Platform: Azure",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

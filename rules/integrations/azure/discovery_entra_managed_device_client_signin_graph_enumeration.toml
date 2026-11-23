@@ -102,6 +102,7 @@ tags = [
     "Rule Type: ESQL",
     "Tactic: Defense Evasion",
     "Tactic: Discovery",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

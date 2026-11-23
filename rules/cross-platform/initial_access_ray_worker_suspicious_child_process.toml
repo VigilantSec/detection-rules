@@ -90,6 +90,7 @@ tags = [
     "Platform: Linux",
     "Platform: macOS",
     "Vuln: CVE-2023-48022",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"

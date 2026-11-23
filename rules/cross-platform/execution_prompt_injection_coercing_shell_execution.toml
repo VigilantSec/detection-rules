@@ -91,6 +91,7 @@ tags = [
     "Platform: macOS",
     "Mitre Atlas: AML.T0051",
     "Mitre Atlas: AML.T0054",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "eql"

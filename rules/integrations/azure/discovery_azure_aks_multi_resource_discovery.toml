@@ -97,6 +97,7 @@ tags = [
     "Rule Type: ES|QL",
     "Platform: Azure",
     "Platform: Kubernetes",
+    "vigilant.unreviewed",
 ]
 timestamp_override = "event.ingested"
 type = "esql"
